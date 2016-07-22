@@ -23,12 +23,17 @@ class LeapListener : Listener
             Console.WriteLine(line);
         }
     }
+
+    public float CursorXPos;
+    public float CursorYPos;
     public override void OnInit(Controller controller)
     {
         IntPtr h = Process.GetCurrentProcess().MainWindowHandle;
         ShowWindow(h, 0);
         controller.EnableGesture(Gesture.GestureType.TYPESWIPE);
         SafeWriteLine("Initialized");
+        CursorXPos = 0;
+        CursorYPos = 0;
     }
 
     public override void OnConnect(Controller controller)
@@ -62,10 +67,51 @@ class LeapListener : Listener
         {
             Hand hand = currentFrame.Hands[0];
             FingerList fingers = hand.Fingers;
+            PointableList pointables = hand.Pointables;
             Hand prevHand = prevFrame.Hands[0];
             FingerList prevFingers = prevHand.Fingers;
             Pointable currentPointable = currentFrame.Pointables[0];
             Pointable prevPointable = prevFrame.Pointables[0];
+            Vector currentPalmPosition = hand.PalmPosition;
+            Vector prevPalmPosition = prevHand.PalmPosition;
+            Vector PalmDir = hand.PalmNormal;
+            /*
+            int ActiveFingers = 0;
+            Frame frame = controller.Frame();
+            for (int h = 0; h < frame.Hands.Count; h++)
+            {
+                Hand leapHand = frame.Hands[h];
+
+                Vector handXBasis = leapHand.PalmNormal.Cross(leapHand.Direction).Normalized;
+                Vector handYBasis = -leapHand.PalmNormal;
+                Vector handZBasis = -leapHand.Direction;
+                Vector handOrigin = leapHand.PalmPosition;
+                Matrix handTransform = new Matrix(handXBasis, handYBasis, handZBasis, handOrigin);
+                handTransform = handTransform.RigidInverse();
+
+                for (int f = 0; f < leapHand.Fingers.Count; f++)
+                {
+                    Finger leapFinger = leapHand.Fingers[f];
+                    Vector transformedPosition = handTransform.TransformPoint(leapFinger.TipPosition);
+                    //Vector transformedDirection = handTransform.TransformDirection(leapFinger.Direction);
+                    // Do something with the transformed fingers
+                    if ((transformedPosition.x * transformedPosition.x + transformedPosition.z * transformedPosition.z) > 4500)
+                    {
+                        ActiveFingers++;
+                    }
+                }
+            }*/
+
+            int ExtendedFingers = 0;
+            for (int f = 0; f < hand.Fingers.Count; f++)
+            {
+                Finger digit = hand.Fingers[f];
+                if (digit.IsExtended)
+                {
+                    ExtendedFingers++;
+                }
+            }
+
             // Set Up Screen
             Leap.Screen currentScreen = controller.CalibratedScreens.ClosestScreenHit(currentPointable);
             Leap.Screen prevScreen = controller.CalibratedScreens.ClosestScreenHit(prevPointable);
@@ -84,12 +130,54 @@ class LeapListener : Listener
             int PrevxPixel = (int)(DisplayWidth * (scalingFactor * PrevLeapXCoordinate));
             float changeyPixel = (PrevyPixel - CurrentyPixel);
             float changexPixel = (PrevxPixel - CurrentxPixel);
+            double scalingFactor2 = 1;
+            int changemax = 100;
+            /*
+            if (changexPixel < changemax || changeyPixel < changemax)
+            {
+                CursorXPos = CursorXPos - (int)(changexPixel * scalingFactor2);
+                CursorYPos = CursorYPos - (int)(changeyPixel * scalingFactor2);
+            }
+            else
+            {
+                CursorXPos = DisplayWidth / 2;
+                CursorYPos = DisplayHeight / 2;
+            }*/
             if (changeyPixel < 0) { changeyPixel = changeyPixel * -1; }
             if (changexPixel < 0) { changexPixel = changexPixel * -1; }
             bool allowfalse = false;
-            if (changeyPixel > 10) { allowfalse = true; }
+            if (changeyPixel > 0) { allowfalse = true; }
             if (CurrentyPixel < 0) { CurrentyPixel = 0; }
             if (CurrentxPixel < 0) { CurrentxPixel = 0; }
+
+            float PalmPosX = currentPalmPosition.x;
+            float PalmPosY = currentPalmPosition.y;
+            float prePalmPosX = prevPalmPosition.x;
+            float prePalmPosY = prevPalmPosition.y;
+            float changePalmPosX = PalmPosX - prePalmPosX;
+            float changePalmPosY = PalmPosY - prePalmPosY;
+            if (currentPalmPosition.z < 100 && currentPalmPosition.z > 1)
+            {
+                if (ExtendedFingers >= 5)
+                {
+
+                    if (changePalmPosX < changemax && changePalmPosY < changemax && PalmDir.Roll < 1 && PalmDir.Roll > -1)
+                    {
+                        CursorXPos = CursorXPos + (int)(changePalmPosX * scalingFactor2);
+                        CursorYPos = CursorYPos - (int)(changePalmPosY * scalingFactor2);
+                        allowfalse = true;
+                    }
+                    else if (PalmDir.Roll > 2 || PalmDir.Roll < -2)
+                    {
+                        CursorXPos = DisplayWidth / 2;
+                        CursorYPos = DisplayHeight / 2;
+                    }
+                    SetCursorPos((int)CursorXPos, (int)CursorYPos);
+                }
+                //Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + ", Fingers: " + fingers.Count + ", Pointabless: " + pointables.Count + "\n");
+                Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + ", Fingers: " + ExtendedFingers + "\n");
+            }
+            /*
             if (allowfalse)
             {
                 if (prevFingers.Count != 2 || prevFingers.Count != 3)
@@ -99,10 +187,13 @@ class LeapListener : Listener
                     {
                         if (changeTime > 500)
                         {
-                            Console.Write("TipPosition: " + fingers[0].TipPosition + " Width: " + CurrentxPixel + " height: " + CurrentyPixel + "\n");
-                            SetCursorPos(CurrentxPixel, CurrentyPixel);
+                            //Console.Write("TipPosition: " + fingers[0].TipPosition + " Width: " + CurrentxPixel + " height: " + CurrentyPixel + "\n");
+                            Console.Write("deltaX: " + changexPixel + ", deltaY: " + changeyPixel + ", width: " + CursorYPos + ", height: " + CursorYPos + "\n");
+                            Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + "\n");
+                            //SetCursorPos(CurrentxPixel, CurrentyPixel);
+                            SetCursorPos((int)CursorXPos, (int)CursorYPos);
                         }
-                    }
+                    }/*
                     if (fingers.Count == 2)
                     {
                         if (changeTime > 1000)
@@ -129,9 +220,9 @@ class LeapListener : Listener
                                 System.Threading.Thread.Sleep(700);
                             }
                         }
-                    }
+                    }*
                 }
-            }
+            }*/
         }
         prevTime = currentTime;
     }
