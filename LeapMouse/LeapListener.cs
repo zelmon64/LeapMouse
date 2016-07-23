@@ -118,6 +118,10 @@ class LeapListener
             Vector currentPalmPosition = hand.StabilizedPalmPosition;
             Vector prevPalmPosition = prevHand.StabilizedPalmPosition;
             Vector PalmDir = hand.PalmNormal;
+            InteractionBox interactionBox = currentFrame.InteractionBox;
+            //Vector normalizedHandPosition = interactionBox.NormalizePoint(hand.PalmPosition);
+            currentPalmPosition = interactionBox.NormalizePoint(hand.StabilizedPalmPosition);
+            prevPalmPosition = interactionBox.NormalizePoint(prevHand.StabilizedPalmPosition);
             int prevExtendedFingers = 0;
             int ExtendedFingers = 0;
             int FingersConfig = 0;
@@ -169,29 +173,18 @@ class LeapListener
             float changePalmPosX = PalmPosX - prePalmPosX;
             float changePalmPosY = PalmPosY - prePalmPosY;
             int changemax = 100;
-            double scalingFactor = 20;
-            if (currentPalmPosition.z < 100 && currentPalmPosition.z > -50 && hand.IsRight && prevHand.IsRight)
+            double scalingFactor = 8000;
+            if (currentPalmPosition.z < 0.999 && currentPalmPosition.z > 0.001)// && hand.IsRight && prevHand.IsRight)
             {
                 if (!MouseOn)
                 {
-                    /*Console.Write("Mouse off \n");/*
-                    if (FingersConfig == 31 && prevFingersConfig == 27 && PalmDir.Roll < 1 && PalmDir.Roll > -1)
+                    if (FingersConfig == 2 && prevFingersConfig == 3)
                     {
                         MouseOn = true;
-                    }*//*
-                    if (prevFingersConfig == 31 && PalmDir.Roll < 1 && PalmDir.Roll > -1)
-                    {
-                        if (FingersConfig == 3)
-                        {
-                            mouse_event(0x0080, 0, (int)CursorXPos, (int)CursorYPos, 0x0001);
-                            mouse_event(0x0100, 0, (int)CursorXPos, (int)CursorYPos, 0x0001);
-                        }
-                        if (FingersConfig == 1)
-                        {
-                            mouse_event(0x0080, 0, (int)CursorXPos, (int)CursorYPos, 0x0002);
-                            mouse_event(0x0100, 0, (int)CursorXPos, (int)CursorYPos, 0x0002);
-                        }
-                    }*/
+                        CursorXPos = 1000;
+                        CursorYPos = 500;
+                    }
+                    /*
                     if (ExtendedFingers == 4 && prevExtendedFingers == 5)
                     {
                         for (int f = 0; f < hand.Fingers.Count; f++)
@@ -203,52 +196,8 @@ class LeapListener
                                 if (digit.Type == Finger.FingerType.TYPE_INDEX)
                                 {
                                     MouseOn = true;
-                                }/*
-                                if (digit.Type == Finger.FingerType.TYPE_INDEX)
-                                {
-                                    //mouse_event(0x0080, 0x0001, (int)CursorXPos, (int)CursorYPos, 0);
-                                    //mouse_event(0x0100, 0x0001, (int)CursorXPos, (int)CursorYPos, 0);
-                                    //*
-                                    //mouse_event(0x0080, 0, (int)CursorXPos, (int)CursorYPos, 0x0001);
-                                    mouse_event(0x0080, (int)CursorXPos, (int)CursorYPos, 0x0001, 0);
-                                    //mouse_event(0x0100, 0, (int)CursorXPos, (int)CursorYPos, 0x0001);
-                                    //*
-                                }
-                                if (digit.Type == Finger.FingerType.TYPE_MIDDLE)
-                                {
-                                    //mouse_event(0x0080, 0x0002, (int)CursorXPos, (int)CursorYPos, 0);
-                                    //mouse_event(0x0100, 0x0002, (int)CursorXPos, (int)CursorYPos, 0);
-                                    ///*
-                                    //mouse_event(0x0080, 0, (int)CursorXPos, (int)CursorYPos, 0x0002);
-                                    mouse_event(0x0080, (int)CursorXPos, (int)CursorYPos, 0x0002, 0);
-                                    //mouse_event(0x0100, 0, (int)CursorXPos, (int)CursorYPos, 0x0002);
-                                    //*
-                                }*/
-                            }
-                        }
-                    }/*
-                    else if (ExtendedFingers == 5 && prevExtendedFingers == 4)
-                    {
-                        for (int f = 0; f < hand.Fingers.Count; f++)
-                        {
-                            Finger digit = hand.Fingers[f];
-                            Finger prevdigit = prevHand.Fingers[f];
-                            if (digit.IsExtended && !prevdigit.IsExtended)
-                            {
-                                if (digit.Type == Finger.FingerType.TYPE_INDEX)
-                                {
-                                    //mouse_event(0x0100, 0x0001, (int)CursorXPos, (int)CursorYPos, 0);
-                                    //*
-                                    //mouse_event(0x0080, 0, (int)CursorXPos, (int)CursorYPos, 0x0001);
-                                    //mouse_event(0x0100, 0, (int)CursorXPos, (int)CursorYPos, 0x0001);
-                                    mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0001, 0);
-                                    //*
-                                }
-                                if (digit.Type == Finger.FingerType.TYPE_MIDDLE)
-                                {
-                                    //mouse_event(0x0100, 0x0002, (int)CursorXPos, (int)CursorYPos, 0);
-                                    //mouse_event(0x0100, 0, (int)CursorXPos, (int)CursorYPos, 0x0002);
-                                    mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0002, 0);
+                                    CursorXPos = 1000;
+                                    CursorYPos = 500;
                                 }
                             }
                         }
@@ -256,7 +205,7 @@ class LeapListener
                 }
                 else
                 {
-                    if (FingersConfig == 3 && prevFingersConfig == 1 && PalmDir.Roll < 1 && PalmDir.Roll > -1)
+                    if (FingersConfig == 1 && prevFingersConfig == 3 && PalmDir.Roll < 1 && PalmDir.Roll > -1)
                     {
                         MouseOn = false;
                         Console.Write("Mouse off \n");
@@ -264,7 +213,7 @@ class LeapListener
                     else if (ExtendedFingers > 3 && ExtendedFingers == prevExtendedFingers)
                     {
 
-                        if (changePalmPosX < changemax && changePalmPosY < changemax && PalmDir.Roll < 1 && PalmDir.Roll > -1)
+                        if (changePalmPosX < changemax && changePalmPosY < changemax && PalmDir.Roll < 1 && PalmDir.Roll > -1 && PalmDir.Pitch < -1.4)
                         {
                             CursorXPos = CursorXPos + (int)(changePalmPosX * scalingFactor);
                             CursorYPos = CursorYPos - (int)(changePalmPosY * scalingFactor);
@@ -276,7 +225,7 @@ class LeapListener
                         }
                         SetCursorPos((int)CursorXPos, (int)CursorYPos);
                     }
-                    else if (ExtendedFingers == 4 && prevExtendedFingers == 5)
+                    else if (ExtendedFingers == 4 && prevExtendedFingers == 5 && PalmDir.Pitch < -1.4)
                     {
                         for (int f = 0; f < hand.Fingers.Count; f++)
                         {
@@ -302,10 +251,6 @@ class LeapListener
                                 }
                                 if (digit.Type == Finger.FingerType.TYPE_PINKY)
                                 {
-                                    /*
-                                    MouseOn = false;
-                                    Console.Write("Mouse off \n");
-                                    */
                                     mouse_event(0x0080, (int)CursorXPos, (int)CursorYPos, 0x0002, 0);
                                 }
                             }
@@ -344,7 +289,7 @@ class LeapListener
                         }
 
                     }
-                    Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + ", Fingers: " + FingersConfig + "\n");
+                    Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Pitch + ", Fingers: " + FingersConfig + "\n");
                     //Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + "\n");
                 }
             }
