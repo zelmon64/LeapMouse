@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Leap;
 
-class LeapListener : Listener
+class LeapListener //: Listener
 {
     [DllImport("user32.dll")]
     private static extern bool SetCursorPos(int X, int Y);
@@ -26,16 +26,16 @@ class LeapListener : Listener
 
     public float CursorXPos;
     public float CursorYPos;
-    public override void OnInit(Controller controller)
+    public void OnInit(Controller controller)
     {
         IntPtr h = Process.GetCurrentProcess().MainWindowHandle;
         ShowWindow(h, 0);
-        controller.EnableGesture(Gesture.GestureType.TYPESWIPE);
+        //controller.EnableGesture(Gesture.GestureType.TYPESWIPE);
         SafeWriteLine("Initialized");
         CursorXPos = 0;
         CursorYPos = 0;
     }
-
+    /*
     public override void OnConnect(Controller controller)
     {
         SafeWriteLine("Connected");
@@ -44,11 +44,63 @@ class LeapListener : Listener
     public override void OnDisconnect(Controller controller)
     {
         SafeWriteLine("Disconnected");
+    }*/
+
+    public void OnConnect(object sender, DeviceEventArgs args)
+    {
+        Console.WriteLine("Connected");
     }
 
-    public override void OnExit(Controller controller)
+    public void OnDisconnect(object sender, DeviceEventArgs args)
+    {
+        Console.WriteLine("Disconnected");
+    }
+
+    public void OnExit(Controller controller)
     {
         SafeWriteLine("Exited");
+    }
+
+    public void OnServiceConnect(object sender, ConnectionEventArgs args)
+    {
+        Console.WriteLine("Service Connected");
+    }
+
+    public void OnServiceDisconnect(object sender, ConnectionLostEventArgs args)
+    {
+        Console.WriteLine("Service Disconnected");
+    }
+
+    public void OnServiceChange(Controller controller)
+    {
+        Console.WriteLine("Service Changed");
+    }
+
+    public void OnDeviceFailure(object sender, DeviceFailureEventArgs args)
+    {
+        Console.WriteLine("Device Error");
+        Console.WriteLine("  PNP ID:" + args.DeviceSerialNumber);
+        Console.WriteLine("  Failure message:" + args.ErrorMessage);
+    }
+
+    public void OnLogMessage(object sender, LogEventArgs args)
+    {
+        switch (args.severity)
+        {
+            case Leap.MessageSeverity.MESSAGE_CRITICAL:
+                Console.WriteLine("[Critical]");
+                break;
+            case Leap.MessageSeverity.MESSAGE_WARNING:
+                Console.WriteLine("[Warning]");
+                break;
+            case Leap.MessageSeverity.MESSAGE_INFORMATION:
+                Console.WriteLine("[Info]");
+                break;
+            case Leap.MessageSeverity.MESSAGE_UNKNOWN:
+                Console.WriteLine("[Unknown]");
+                break;
+        }
+        Console.WriteLine("[{0}] {1}", args.timestamp, args.message);
     }
 
     public Int64 prevTime;
@@ -56,22 +108,26 @@ class LeapListener : Listener
     public Int64 changeTime;
     public Frame currentFrame;
     public Frame prevFrame;
-    public override void OnFrame(Controller controller)
+    //public override void OnFrame(Controller controller)
+    public void OnFrame(object sender, FrameEventArgs args)
     {
-        currentFrame = controller.Frame();
-        prevFrame = controller.Frame(10);
+        prevFrame = currentFrame;
+        currentFrame = args.frame;
         currentTime = currentFrame.Timestamp;
         changeTime = currentTime - prevTime;
 
-        if (changeTime > 500)
+        //Console.WriteLine("Frame id: {0}, timestamp: {1}, hands: {2}, changeTime: {3}",
+        //    currentFrame.Id, currentFrame.Timestamp, currentFrame.Hands.Count, changeTime);
+
+        if (changeTime > 500 && currentFrame.Hands.Count > 0 && prevFrame.Hands.Count > 0)
         {
             Hand hand = currentFrame.Hands[0];
-            FingerList fingers = hand.Fingers;
-            PointableList pointables = hand.Pointables;
+            //FingerList fingers = hand.Fingers;
+            //PointableList pointables = hand.Pointables;
             Hand prevHand = prevFrame.Hands[0];
-            FingerList prevFingers = prevHand.Fingers;
-            Pointable currentPointable = currentFrame.Pointables[0];
-            Pointable prevPointable = prevFrame.Pointables[0];
+            //FingerList prevFingers = prevHand.Fingers;
+            //Pointable currentPointable = currentFrame.Pointables[0];
+            //Pointable prevPointable = prevFrame.Pointables[0];
             Vector currentPalmPosition = hand.PalmPosition;
             Vector prevPalmPosition = prevHand.PalmPosition;
             Vector PalmDir = hand.PalmNormal;
@@ -101,7 +157,7 @@ class LeapListener : Listener
                     }
                 }
             }*/
-
+            
             int ExtendedFingers = 0;
             for (int f = 0; f < hand.Fingers.Count; f++)
             {
@@ -111,7 +167,7 @@ class LeapListener : Listener
                     ExtendedFingers++;
                 }
             }
-
+            /*
             // Set Up Screen
             Leap.Screen currentScreen = controller.CalibratedScreens.ClosestScreenHit(currentPointable);
             Leap.Screen prevScreen = controller.CalibratedScreens.ClosestScreenHit(prevPointable);
@@ -142,13 +198,14 @@ class LeapListener : Listener
             {
                 CursorXPos = DisplayWidth / 2;
                 CursorYPos = DisplayHeight / 2;
-            }*/
+            }*
             if (changeyPixel < 0) { changeyPixel = changeyPixel * -1; }
             if (changexPixel < 0) { changexPixel = changexPixel * -1; }
             bool allowfalse = false;
             if (changeyPixel > 0) { allowfalse = true; }
             if (CurrentyPixel < 0) { CurrentyPixel = 0; }
             if (CurrentxPixel < 0) { CurrentxPixel = 0; }
+            */
 
             float PalmPosX = currentPalmPosition.x;
             float PalmPosY = currentPalmPosition.y;
@@ -156,26 +213,33 @@ class LeapListener : Listener
             float prePalmPosY = prevPalmPosition.y;
             float changePalmPosX = PalmPosX - prePalmPosX;
             float changePalmPosY = PalmPosY - prePalmPosY;
-            if (currentPalmPosition.z < 100 && currentPalmPosition.z > 1)
+            int changemax = 100;
+            double scalingFactor = 5;
+            if (currentPalmPosition.z < 150 && currentPalmPosition.z > -50)
             {
                 if (ExtendedFingers >= 5)
                 {
 
                     if (changePalmPosX < changemax && changePalmPosY < changemax && PalmDir.Roll < 1 && PalmDir.Roll > -1)
                     {
-                        CursorXPos = CursorXPos + (int)(changePalmPosX * scalingFactor2);
-                        CursorYPos = CursorYPos - (int)(changePalmPosY * scalingFactor2);
-                        allowfalse = true;
+                        CursorXPos = CursorXPos + (int)(changePalmPosX * scalingFactor);
+                        CursorYPos = CursorYPos - (int)(changePalmPosY * scalingFactor);
+                        //allowfalse = true;
                     }
                     else if (PalmDir.Roll > 2 || PalmDir.Roll < -2)
                     {
+                        /*
                         CursorXPos = DisplayWidth / 2;
                         CursorYPos = DisplayHeight / 2;
+                         */
+                        CursorXPos = 1000;
+                        CursorYPos = 500;
                     }
                     SetCursorPos((int)CursorXPos, (int)CursorYPos);
                 }
                 //Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + ", Fingers: " + fingers.Count + ", Pointabless: " + pointables.Count + "\n");
                 Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + ", Fingers: " + ExtendedFingers + "\n");
+                //Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + "\n");
             }
             /*
             if (allowfalse)
