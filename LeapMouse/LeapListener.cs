@@ -173,12 +173,12 @@ class LeapListener
             float changePalmPosX = PalmPosX - prePalmPosX;
             float changePalmPosY = PalmPosY - prePalmPosY;
             int changemax = 100;
-            double scalingFactor = 8000;
+            double scalingFactor = 15000;
             if (currentPalmPosition.z < 0.999 && currentPalmPosition.z > 0.001)// && hand.IsRight && prevHand.IsRight)
             {
                 if (!MouseOn)
                 {
-                    if (FingersConfig == 2 && prevFingersConfig == 3)
+                    if (FingersConfig == 7 && prevFingersConfig == 3)
                     {
                         MouseOn = true;
                         CursorXPos = 1000;
