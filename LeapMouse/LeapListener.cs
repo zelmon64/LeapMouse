@@ -111,7 +111,7 @@ class LeapListener
         //Console.WriteLine("Frame id: {0}, timestamp: {1}, hands: {2}, changeTime: {3}",
         //    currentFrame.Id, currentFrame.Timestamp, currentFrame.Hands.Count, changeTime);
 
-        if (changeTime > 5000 && currentFrame.Hands.Count > 0 && prevFrame.Hands.Count > 0)
+        if (changeTime > 40000 && currentFrame.Hands.Count > 0 && prevFrame.Hands.Count > 0)
         {
             Hand hand = currentFrame.Hands[0];
             Hand prevHand = prevFrame.Hands[0];
@@ -145,13 +145,9 @@ class LeapListener
             for (int f = 0; f < hand.Fingers.Count; f++)
             {
                 Finger digit = hand.Fingers[f];
-                if (digit.IsExtended)// && digit.Type == Finger.FingerType.TYPE_INDEX)
+                if (digit.IsExtended)
                 {
                     ExtendedFingers++;
-                    //Console.Write("Digit: " + digit.Type + " ");
-                    //Console.Write("DigitID: " + digit.Id + " ");
-                    //Console.Write("DigitID: " + (digit.Id - hand.Id * 10) + " ");
-                    //FingersConfig += 2 ^ (digit.Id - hand.Id * 10);
                     FingersMult = 1;
                     for (int m = 0; m < digit.Id - hand.Id * 10; m++)
                     {
@@ -164,8 +160,261 @@ class LeapListener
             {
                 //Console.Write("Finger configuration: " + FingersConfig + "\n");
             }
-            //Console.Write("Visible fingers: " + hand.Fingers. + "\n");
-           
+            //Console.Write("Visible fingers: " + hand.Fingers.Count + ", Finger configuration: " + FingersConfig + "\n");
+
+            if (ExtendedFingers != prevExtendedFingers)
+            {
+                //Console.Write("Visible fingers: " + hand.Fingers.Count + ", Finger configuration: " + FingersConfig + "\n");
+            }
+
+            //Hand leapHand = frame.Hands [h];
+            /*
+            Vector handXBasis = hand.PalmNormal.Cross (hand.Direction).Normalized;
+            Vector handYBasis = -hand.PalmNormal;
+            Vector handZBasis = -hand.Direction;
+            Vector handOrigin = hand.PalmPosition;
+            currentFrame.
+            Matrix handTransform = new Matrix (handXBasis, handYBasis, handZBasis, handOrigin);
+            handTransform = handTransform.RigidInverse ();
+            */
+            int PressedFingers = 0;
+            int PressedFingersConfig = 0;
+            //int LowestDigit;
+            //Vector AverageFingerPosiion = Vector.Zero;
+            for (int f = 0; f < hand.Fingers.Count; f++)
+            {
+                //currentPalmPosition = interactionBox.NormalizePoint(hand.StabilizedPalmPosition);
+                Finger leapFinger = hand.Fingers[f];
+                /*
+                Vector transformedPosition = handTransform.TransformPoint (leapFinger.TipPosition);
+                Vector transformedDirection = handTransform.TransformDirection (leapFinger.Direction);
+                */
+                Vector transformedFingerPosition = interactionBox.NormalizePoint(leapFinger.StabilizedTipPosition);
+                // Do something with the transformed fingers
+                //AverageFingerPosiion += transformedFingerPosition - currentPalmPosition;
+                if (transformedFingerPosition.y < currentPalmPosition.y - 0.05)
+                {
+                    PressedFingers++;
+                    FingersMult = 1;
+                    for (int m = 0; m < leapFinger.Id - hand.Id * 10; m++)
+                    {
+                        FingersMult *= 2;
+                    }
+                    PressedFingersConfig += FingersMult;
+                }
+            }
+            int prevPressedFingers = 0;
+            int prevPressedFingersConfig = 0;
+            for (int f = 0; f < prevHand.Fingers.Count; f++)
+            {
+                Finger Digit = prevHand.Fingers[f];
+                Vector transformedFingerPosition = interactionBox.NormalizePoint(Digit.StabilizedTipPosition);
+                if (transformedFingerPosition.y < currentPalmPosition.y - 0.08)
+                {
+                    prevPressedFingers++;
+                    FingersMult = 1;
+                    for (int m = 0; m < Digit.Id - hand.Id * 10; m++)
+                    {
+                        FingersMult *= 2;
+                    }
+                    prevPressedFingersConfig += FingersMult;
+                }
+            }
+            //Console.Write("Pressed fingers: " + PressedFingers + ", Pressed fingers config: " + PressedFingersConfig + "\n");
+
+            if (PressedFingers != prevPressedFingers)
+            {
+                Console.Write("Pressed fingers: " + PressedFingers + ", Pressed fingers config: " + PressedFingersConfig + "\n");
+            }
+
+            if (PressedFingers == 1 && prevPressedFingers == 1)
+            {
+                //float PalmPitch = interactionBox.NormalizePoint(hand.StabilizedPalmPosition.Pitch);
+                //float PalmPitch = currentPalmPosition.Pitch;
+                //float prevPalmPitch = prevPalmPosition.Pitch;
+                /*float PalmYaw = currentPalmPosition.Yaw;
+                float prevPalmYaw = prevPalmPosition.Yaw;
+                float PalmRoll = currentPalmPosition.Roll;
+                float prevPalmRoll = prevPalmPosition.Roll;*/
+                /*
+                double dPalmPitch = currentPalmPosition.Pitch - prevPalmPosition.Pitch;
+                double dPalmYaw = currentPalmPosition.Yaw - prevPalmPosition.Yaw;
+                double dPalmRoll = currentPalmPosition.Roll - prevPalmPosition.Roll;
+                */
+                double dPalmPitch = currentPalmPosition.x - prevPalmPosition.x;
+                double dPalmYaw = currentPalmPosition.y - prevPalmPosition.y;
+                double dPalmRoll = currentPalmPosition.z - prevPalmPosition.z;
+                
+                /*
+                double dPalmPitch = hand.PalmNormal.Pitch - prevHand.PalmNormal.Pitch;
+                double dPalmYaw = hand.PalmNormal.Yaw - prevHand.PalmNormal.Yaw;
+                double dPalmRoll = hand.PalmNormal.Roll - prevHand.PalmNormal.Roll;
+                */
+                double RotateMin = 0.001;
+                double pitchmult = 1;
+
+                if (dPalmPitch * dPalmPitch + dPalmYaw * dPalmYaw + dPalmRoll * dPalmRoll < RotateMin * RotateMin)
+                {
+                    Console.Write("Digit Direction: Stationary\n");
+                }
+                else if (dPalmPitch > RotateMin * pitchmult)
+                {
+                    Console.Write("Digit Direction: Pitch\n");
+                }
+                else if (dPalmPitch < -RotateMin * pitchmult)
+                {
+                    Console.Write("Digit Direction: -Pitch\n");
+                }
+                else if (dPalmYaw > RotateMin)
+                {
+                    Console.Write("Digit Direction: Yaw\n");
+                }
+                else if (dPalmYaw < -RotateMin)
+                {
+                    Console.Write("Digit Direction: -Yaw\n");
+                }
+                else if (dPalmRoll > RotateMin)
+                {
+                    Console.Write("Digit Direction: Roll\n");
+                }
+                else if (dPalmRoll < -RotateMin)
+                {
+                    Console.Write("Digit Direction: -Roll\n");
+                }
+            }
+
+            /*
+            if (PressedFingers == 1 && prevPressedFingers == 1)
+            {
+                //Vector DigitPosition = Vector.Zero;
+                //Vector prevDigitPosition = Vector.Zero;
+                Vector DigitVelocity = Vector.Zero;
+                Vector prevDigitVelocity = Vector.Zero;
+                int DigitID;
+                if (PressedFingersConfig == 1)
+                {
+                    DigitID = 0;
+                    //DigitPosition = interactionBox.NormalizePoint(hand.Fingers[DigitID].StabilizedTipPosition);
+                    //prevDigitPosition = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].StabilizedTipPosition);
+                    //DigitVelocity = hand.Fingers[0].TipVelocity;
+                    DigitVelocity = interactionBox.NormalizePoint(hand.Fingers[DigitID].TipVelocity);
+                    prevDigitVelocity = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].TipVelocity);
+                }
+                else if (PressedFingersConfig == 2)
+                {
+                    DigitID = 1;
+                    //DigitPosition = interactionBox.NormalizePoint(hand.Fingers[DigitID].StabilizedTipPosition);
+                    //prevDigitPosition = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].StabilizedTipPosition);
+                    //DigitVelocity = hand.Fingers[1].TipVelocity;
+                    DigitVelocity = interactionBox.NormalizePoint(hand.Fingers[DigitID].TipVelocity);
+                    prevDigitVelocity = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].TipVelocity);
+                }
+                else if (PressedFingersConfig == 4)
+                {
+                    DigitID = 2;
+                    //DigitPosition = interactionBox.NormalizePoint(hand.Fingers[DigitID].StabilizedTipPosition);
+                    //prevDigitPosition = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].StabilizedTipPosition);
+                    //DigitVelocity = hand.Fingers[2].TipVelocity;
+                    DigitVelocity = interactionBox.NormalizePoint(hand.Fingers[DigitID].TipVelocity);
+                    prevDigitVelocity = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].TipVelocity);
+                }
+                else if (PressedFingersConfig == 8)
+                {
+                    DigitID = 3;
+                    //DigitPosition = interactionBox.NormalizePoint(hand.Fingers[DigitID].StabilizedTipPosition);
+                    //prevDigitPosition = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].StabilizedTipPosition);
+                    //DigitVelocity = hand.Fingers[3].TipVelocity;
+                    //DigitVelocity = interactionBox.NormalizePoint(hand.Fingers[DigitID].TipVelocity);
+                    //prevDigitVelocity = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].TipVelocity);
+                    DigitVelocity = interactionBox.NormalizePoint(hand.PalmVelocity);
+                    prevDigitVelocity = interactionBox.NormalizePoint(prevHand.PalmVelocity);
+                }
+                else if (PressedFingersConfig == 16)
+                {
+                    DigitID = 4;
+                    //DigitPosition = interactionBox.NormalizePoint(hand.Fingers[DigitID].StabilizedTipPosition);
+                    //prevDigitPosition = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].StabilizedTipPosition);
+                    //DigitVelocity = hand.Fingers[4].TipVelocity;
+                    DigitVelocity = interactionBox.NormalizePoint(hand.Fingers[DigitID].TipVelocity);
+                    prevDigitVelocity = interactionBox.NormalizePoint(prevHand.Fingers[DigitID].TipVelocity);
+                }
+
+                int DigitDirection;
+                double minVelocity = 0.465;
+                //if (DigitVelocity == Vector.Zero || ((DigitVelocity.z - prevDigitVelocity.z) * (DigitVelocity.x - prevDigitVelocity.x) + (DigitVelocity.y - prevDigitVelocity.y) * (DigitVelocity.y - prevDigitVelocity.y)) < minVelocity * minVelocity)
+                if (DigitVelocity == Vector.Zero || (((DigitVelocity.z) * (DigitVelocity.x) + (DigitVelocity.y) * (DigitVelocity.y)) < minVelocity * minVelocity && ((prevDigitVelocity.z) * (prevDigitVelocity.x) + (prevDigitVelocity.y) * (prevDigitVelocity.y)) > minVelocity * minVelocity))
+                {
+                    Console.Write("Digit Direction: Stationary\n");
+                    DigitDirection = 0;
+                }
+                else if (DigitVelocity.x > prevDigitVelocity.x + minVelocity)
+                {
+                    Console.Write("Digit Direction: Left\n");
+                    DigitDirection = 1;
+                }
+                else if (DigitVelocity.x < prevDigitVelocity.x - minVelocity)
+                {
+                    Console.Write("Digit Direction: Right\n");
+                    DigitDirection = -1;
+                }
+                else if (DigitVelocity.z > prevDigitVelocity.z + minVelocity)
+                {
+                    Console.Write("Digit Direction: Up\n");
+                    DigitDirection = 2;
+                }
+                else if (DigitVelocity.z < prevDigitVelocity.z - minVelocity)
+                {
+                    Console.Write("Digit Direction: Down\n");
+                    DigitDirection = -2;
+                }
+                else if (DigitVelocity.y > prevDigitVelocity.y + minVelocity)
+                {
+                    Console.Write("Digit Direction: Forward\n");
+                    DigitDirection = 3;
+                }
+                else if (DigitVelocity.y < prevDigitVelocity.y - minVelocity)
+                {
+                    Console.Write("Digit Direction: Backward\n");
+                    DigitDirection = -3;
+                }
+                /*
+                if (DigitVelocity == Vector.Zero || ((DigitVelocity.x - prevDigitVelocity.x) * (DigitVelocity.x - prevDigitVelocity.x) + (DigitVelocity.y - prevDigitVelocity.y) * (DigitVelocity.y - prevDigitVelocity.y)) < minVelocity * minVelocity)//((DigitVelocity.x - prevDigitVelocity.x) < minVelocity && (DigitVelocity.y - prevDigitVelocity.y) < minVelocity))// && (DigitVelocity.z - prevDigitVelocity.z) < minVelocity))
+                {
+                    Console.Write("Digit Direction: Stationary\n");
+                    DigitDirection = 0;
+                }
+                else if (DigitVelocity.x > DigitVelocity.y + minVelocity)// && DigitVelocity.x > DigitVelocity.z)
+                {
+                    Console.Write("Digit Direction: Left\n");
+                    DigitDirection = 1;
+                }
+                else if (DigitVelocity.x < DigitVelocity.y - minVelocity)// && DigitVelocity.x < DigitVelocity.z)
+                {
+                    Console.Write("Digit Direction: Right\n");
+                    DigitDirection = -1;
+                }
+                else if (DigitVelocity.y > DigitVelocity.x + minVelocity)// && DigitVelocity.y > DigitVelocity.z)
+                {
+                    Console.Write("Digit Direction: Up\n");
+                    DigitDirection = 2;
+                }
+                else if (DigitVelocity.y < DigitVelocity.x - minVelocity)// && DigitVelocity.y < DigitVelocity.z)
+                {
+                    Console.Write("Digit Direction: Down\n");
+                    DigitDirection = -2;
+                }/*
+                else if (DigitVelocity.z > DigitVelocity.y && DigitVelocity.z > DigitVelocity.x)
+                {
+                    Console.Write("Digit Direction: Backwards\n");
+                    DigitDirection = 3;
+                }
+                else if (DigitVelocity.z < DigitVelocity.y && DigitVelocity.z < DigitVelocity.x)
+                {
+                    Console.Write("Digit Direction: Forwards\n");
+                    DigitDirection = -3;
+                }*
+            }*/
+            
             float PalmPosX = currentPalmPosition.x;
             float PalmPosY = currentPalmPosition.y;
             float prePalmPosX = prevPalmPosition.x;
@@ -178,30 +427,12 @@ class LeapListener
             {
                 if (!MouseOn)
                 {
-                    if (FingersConfig == 7 && prevFingersConfig == 3)
+                    if (FingersConfig == 31 && prevFingersConfig == 3)
                     {
                         MouseOn = true;
                         CursorXPos = 1000;
                         CursorYPos = 500;
                     }
-                    /*
-                    if (ExtendedFingers == 4 && prevExtendedFingers == 5)
-                    {
-                        for (int f = 0; f < hand.Fingers.Count; f++)
-                        {
-                            Finger digit = hand.Fingers[f];
-                            Finger prevdigit = prevHand.Fingers[f];
-                            if (!digit.IsExtended && prevdigit.IsExtended)
-                            {
-                                if (digit.Type == Finger.FingerType.TYPE_INDEX)
-                                {
-                                    MouseOn = true;
-                                    CursorXPos = 1000;
-                                    CursorYPos = 500;
-                                }
-                            }
-                        }
-                    }*/
                 }
                 else
                 {
