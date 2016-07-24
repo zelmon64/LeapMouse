@@ -25,7 +25,7 @@ namespace LeapMouse
                 controller.LogMessage += listener.OnLogMessage;
 
                 // Keep this process running until Enter is pressed
-                Console.WriteLine("Press any key to quit...");
+                Console.WriteLine("Press return key to quit...");
                 Console.ReadLine();
             }
         }
