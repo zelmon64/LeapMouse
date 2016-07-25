@@ -102,9 +102,6 @@ class LeapListener
     public Int64 changeTime;
     public Frame currentFrame;
     public Frame prevFrame;
-    public double digitTravelX;
-    public double digitTravelY;
-    public double digitTravelZ;
     public Vector DigitTravel;
     //public override void OnFrame(Controller controller)
     public void OnFrame(object sender, FrameEventArgs args)
@@ -138,6 +135,7 @@ class LeapListener
             int prevPressedFingers = 0;
             int prevPressedFingersConfig = 0;
             double pressedmin = 0.025;
+            pressedmin = 0.05;
             double pitchmax = -1.2;
             int DigitID = 0;
             int prevDigitID = 0;
@@ -213,18 +211,20 @@ class LeapListener
             double mousePowerScaling = 1;
             double mouseDirX = 1;
             double mouseDirY = 1;
-            
+
+            double TravMin = 0.1;
+            TravMin = 0.0002;
             /*
             FingersConfig = 31 - PressedFingersConfig;
             prevFingersConfig = 31 - prevPressedFingersConfig;
-            */
+            *
             PressedFingers = 5 - ExtendedFingers;
             prevPressedFingers = 5 - prevExtendedFingers;
             PressedFingersConfig = 31 - FingersConfig;
             prevPressedFingersConfig = 31 - prevFingersConfig;
             DigitID = eDigitID;
             prevDigitID = preveDigitID;
-
+            */
 
             if (currentPalmPosition.z < 0.999 && currentPalmPosition.z > 0.001)// && hand.IsRight && prevHand.IsRight)
             {
@@ -247,7 +247,6 @@ class LeapListener
                     {
                         KbOn = true;
                         Console.Write("Keyboard on \n");
-                        digitTravelX = digitTravelY = digitTravelZ = 0;
                         DigitTravel = Vector.Zero;
                     }
                 }
@@ -260,38 +259,222 @@ class LeapListener
                     }
                     if (PressedFingers != prevPressedFingers)
                     {
-                        Console.Write("Pressed fingers: " + PressedFingers + ", Pressed fingers config: " + PressedFingersConfig + ", Digit Id: " + DigitID + "\n");
+                        if (PressedFingers > 1 && prevPressedFingersConfig > 1)//(hand.Fingers[DigitID].Type != Finger.FingerType.TYPE_INDEX || prevHand.Fingers[prevDigitID].Type != Finger.FingerType.TYPE_INDEX)
+                        {
+                            Console.Write("Pressed fingers: " + PressedFingers + ", Pressed fingers config: " + PressedFingersConfig + ", Digit Id: " + DigitID + "\n");
+                        }
                     }
                     if (PressedFingers == 1 && prevPressedFingers != 1)
                     {
-                        digitTravelX = digitTravelY = digitTravelZ = 0;
                         DigitTravel = Vector.Zero;
                     }
                     if (PressedFingers == 0 && prevPressedFingers == 1)
                     {
+                        Leap.Finger.FingerType DigitType = prevHand.Fingers[prevDigitID].Type;
                         /*
                         Console.Write("Digit {0} moved ({1}, {2}, {3})\n",
-                            prevDigitID, digitTravelX, digitTravelY, digitTravelZ);
-                        */
-                        Leap.Finger.FingerType DigitType = prevHand.Fingers[prevDigitID].Type;
-                        Console.Write("Digit {0} moved ({1}, {2}, {3})\n",
                             DigitType, DigitTravel.x, DigitTravel.y, DigitTravel.z);
+                        */
+                        TravMin = 300 * TravMin;
+                        TravMin /= 2;
+                        double TravMinButton1 = 0.5 * 2;
+                        double TravMinButton2 = 1.5 * 2;
+                        double TravMinButton3 = 2.5 * 2;
+
                         double AngToll = 0.4;
                         double pi = 3.141592;
                         if (DigitType == Finger.FingerType.TYPE_INDEX)
                         {
-                            if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
+                            if (DigitTravel.Magnitude < TravMin)
                             {
-                                Console.Write("X moion\n");
+                                //Console.Write("\n");
+                                Console.Write("d");
                             }
-                            if (DigitTravel.AngleTo(Vector.YAxis) < AngToll || DigitTravel.AngleTo(Vector.YAxis) > pi - AngToll)
+                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
+                            {
+                                //Console.Write("X moion\n");
+                                if (DigitTravel.x < -TravMin * TravMinButton3)
+                                {
+                                    Console.Write("a");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton2)
+                                {
+                                    Console.Write("b");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton1)
+                                {
+                                    Console.Write("c");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton2)
+                                {
+                                    Console.Write("e");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton3)
+                                {
+                                    Console.Write("f");
+                                }
+                                else //if (DigitTravel.x < TravMin * 3)
+                                {
+                                    Console.Write("g");
+                                }
+                            }
+                            else if (DigitTravel.AngleTo(Vector.YAxis) < AngToll || DigitTravel.AngleTo(Vector.YAxis) > pi - AngToll)
                             {
                                 Console.Write("Y moion\n");
                             }
-                            if (DigitTravel.AngleTo(Vector.ZAxis) < AngToll || DigitTravel.AngleTo(Vector.ZAxis) > pi - AngToll)
+                            else if (DigitTravel.AngleTo(Vector.ZAxis) < AngToll || DigitTravel.AngleTo(Vector.ZAxis) > pi - AngToll)
                             {
                                 Console.Write("Z moion\n");
                             }
+                        }
+                        else if (DigitType == Finger.FingerType.TYPE_THUMB)
+                        {
+                            if (DigitTravel.Magnitude < TravMin)
+                            {
+                                //Console.Write("\n");
+                                Console.Write("_");
+                            }
+                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
+                            {
+                                //Console.Write("X moion\n");
+                                if (DigitTravel.x < -TravMin * TravMinButton3)
+                                {
+                                    Console.Write(";");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton2)
+                                {
+                                    Console.Write(",");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton1)
+                                {
+                                    Console.Write(".");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton2)
+                                {
+                                    Console.Write("?");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton3)
+                                {
+                                    Console.Write("!");
+                                }
+                                else
+                                {
+                                    Console.Write("\n");
+                                }
+                            }
+                        }
+                        else if (DigitType == Finger.FingerType.TYPE_MIDDLE)
+                        {
+                            if (DigitTravel.Magnitude < TravMin)
+                            {
+                                //Console.Write("\n");
+                                Console.Write("k");
+                            }
+                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
+                            {
+                                //Console.Write("X moion\n");
+                                if (DigitTravel.x < -TravMin * TravMinButton3)
+                                {
+                                    Console.Write("h");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton2)
+                                {
+                                    Console.Write("i");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton1)
+                                {
+                                    Console.Write("j");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton2)
+                                {
+                                    Console.Write("l");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton3)
+                                {
+                                    Console.Write("m");
+                                }
+                                else
+                                {
+                                    Console.Write("n");
+                                }
+                            }
+                        }
+                        else if (DigitType == Finger.FingerType.TYPE_RING)
+                        {
+                            if (DigitTravel.Magnitude < TravMin)
+                            {
+                                //Console.Write("\n");
+                                Console.Write("r");
+                            }
+                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
+                            {
+                                //Console.Write("X moion\n");
+                                if (DigitTravel.x < -TravMin * TravMinButton3)
+                                {
+                                    Console.Write("o");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton2)
+                                {
+                                    Console.Write("p");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton1)
+                                {
+                                    Console.Write("q");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton2)
+                                {
+                                    Console.Write("s");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton3)
+                                {
+                                    Console.Write("t");
+                                }
+                                else
+                                {
+                                    Console.Write("u");
+                                }
+                            }
+                        }
+                        else if (DigitType == Finger.FingerType.TYPE_PINKY)
+                        {
+                            if (DigitTravel.Magnitude < TravMin)
+                            {
+                                //Console.Write("\n");
+                                Console.Write("y");
+                            }
+                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
+                            {
+                                //Console.Write("X moion\n");
+                                if (DigitTravel.x < -TravMin * TravMinButton3)
+                                {
+                                    Console.Write("v");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton2)
+                                {
+                                    Console.Write("w");
+                                }
+                                else if (DigitTravel.x < -TravMin * TravMinButton1)
+                                {
+                                    Console.Write("x");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton2)
+                                {
+                                    Console.Write("z");
+                                }
+                                else if (DigitTravel.x < TravMin * TravMinButton3)
+                                {
+                                    Console.Write("t");
+                                }
+                                else
+                                {
+                                    Console.Write("u");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.Write("Digit {0} moved ({1}, {2}, {3})\n",
+                            DigitType, DigitTravel.x, DigitTravel.y, DigitTravel.z);
                         }
                     } 
                     if (PressedFingers == 1 && prevPressedFingers == 1 && FingersConfig == prevFingersConfig)
@@ -300,77 +483,20 @@ class LeapListener
                         double dPalmPitch = hand.Fingers[DigitID].StabilizedTipPosition.x - prevHand.Fingers[DigitID].StabilizedTipPosition.x;
                         double dPalmYaw = hand.Fingers[DigitID].StabilizedTipPosition.y - prevHand.Fingers[DigitID].StabilizedTipPosition.y;
                         double dPalmRoll = hand.Fingers[DigitID].StabilizedTipPosition.z - prevHand.Fingers[DigitID].StabilizedTipPosition.z;
-                        */
-                        //float PalmPitch = interactionBox.NormalizePoint(hand.StabilizedPalmPosition.Pitch);
-                        //float PalmPitch = currentPalmPosition.Pitch;
-                        //float prevPalmPitch = prevPalmPosition.Pitch;
-                        /*float PalmYaw = currentPalmPosition.Yaw;
-                        float prevPalmYaw = prevPalmPosition.Yaw;
-                        float PalmRoll = currentPalmPosition.Roll;
-                        float prevPalmRoll = prevPalmPosition.Roll;*/
-                        /*
-                        double dPalmPitch = currentPalmPosition.Pitch - prevPalmPosition.Pitch;
-                        double dPalmYaw = currentPalmPosition.Yaw - prevPalmPosition.Yaw;
-                        double dPalmRoll = currentPalmPosition.Roll - prevPalmPosition.Roll;
                         *
                         double dPalmPitch = currentPalmPosition.x - prevPalmPosition.x;
                         double dPalmYaw = currentPalmPosition.y - prevPalmPosition.y;
                         double dPalmRoll = currentPalmPosition.z - prevPalmPosition.z;
-                        /*
-                        double dPalmPitch = hand.PalmNormal.Pitch - prevHand.PalmNormal.Pitch;
-                        double dPalmYaw = hand.PalmNormal.Yaw - prevHand.PalmNormal.Yaw;
-                        double dPalmRoll = hand.PalmNormal.Roll - prevHand.PalmNormal.Roll;
                         */
-                        double RotateMin = 0.1;
-                        //double pitchmult = 1;
+                        //double TravMin = 0.1;
                         
-                        Vector dDigitPos = hand.Fingers[DigitID].StabilizedTipPosition - prevHand.Fingers[DigitID].StabilizedTipPosition;
+                        //Vector dDigitPos = hand.Fingers[DigitID].StabilizedTipPosition - prevHand.Fingers[DigitID].StabilizedTipPosition;
+                        Vector dDigitPos = currentPalmPosition- prevPalmPosition;
 
-                        if (dDigitPos.Magnitude > RotateMin)
+                        if (dDigitPos.Magnitude > TravMin)
                         {
                             DigitTravel += dDigitPos;
                         }
-                         /*
-                        if (dPalmPitch * dPalmPitch + dPalmYaw * dPalmYaw + dPalmRoll * dPalmRoll < RotateMin * RotateMin)
-                        {
-                            //Console.Write("Digit Direction: Stationary\n");
-                        }
-                        else if (dPalmPitch > RotateMin * pitchmult)
-                        {
-                            //Console.Write("Digit Direction: Pitch\n");
-                            digitTravelX += dPalmPitch;
-                            DigitTravel.x += (float)dPalmPitch;
-                        }
-                        else if (dPalmPitch < -RotateMin * pitchmult)
-                        {
-                            digitTravelX += dPalmPitch;
-                            //Console.Write("Digit Direction: -Pitch\n");
-                            DigitTravel.x += (float)dPalmPitch;
-                        }
-                        else if (dPalmYaw > RotateMin)
-                        {
-                            digitTravelY += dPalmYaw;
-                            //Console.Write("Digit Direction: Yaw\n");
-                            DigitTravel.y += (float)dPalmYaw;
-                        }
-                        else if (dPalmYaw < -RotateMin)
-                        {
-                            digitTravelY += dPalmYaw;
-                            //Console.Write("Digit Direction: -Yaw\n");
-                            DigitTravel.y += (float)dPalmYaw;
-                        }
-                        else if (dPalmRoll > RotateMin)
-                        {
-                            digitTravelZ += dPalmRoll;
-                            //Console.Write("Digit Direction: Roll\n");
-                            DigitTravel.z += (float)dPalmRoll;
-                        }
-                        else if (dPalmRoll < -RotateMin)
-                        {
-                            digitTravelZ += dPalmRoll;
-                            //Console.Write("Digit Direction: -Roll\n");
-                            DigitTravel.z += (float)dPalmRoll;
-                        }*/
                     }
                 }
                 else if (MouseOn)
