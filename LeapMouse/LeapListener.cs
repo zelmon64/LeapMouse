@@ -12,7 +12,14 @@ class LeapListener
     static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
     public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
+    [DllImport("user32.dll", SetLastError = true)]
+    static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
 
+    public const int KEYEVENTF_KEYDOWN = 0; //Key down flag
+    public const int KEYEVENTF_KEYUP = 0x0002; //Key up flag
+    /*public const int VK_LCONTROL = 0xA2; //Left Control key code
+    public const int A = 0x41; //A key code
+    public const int C = 0x43; //C key code*/
 
     private Object thisLock = new Object();
 
@@ -75,6 +82,12 @@ class LeapListener
         Console.WriteLine("Device Error");
         Console.WriteLine("  PNP ID:" + args.DeviceSerialNumber);
         Console.WriteLine("  Failure message:" + args.ErrorMessage);
+    }
+
+    public void PressVK(byte key)
+    {
+        keybd_event(key, 0, 0, 0);
+        keybd_event(key, 0, 0x0002, 0);
     }
 
     public void OnLogMessage(object sender, LogEventArgs args)
@@ -287,35 +300,42 @@ class LeapListener
                         {
                             if (DigitTravel.Magnitude < TravMin)
                             {
-                                //Console.Write("\n");
                                 Console.Write("d");
+                                PressVK(0x44);
                             }
                             else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
                             {
                                 //Console.Write("X moion\n");
                                 if (DigitTravel.x < -TravMin * TravMinButton3)
                                 {
+                                    keybd_event(0x41, 0, 0, 0);
                                     Console.Write("a");
+                                    keybd_event(0x41, 0, 0x0002, 0);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton2)
                                 {
                                     Console.Write("b");
+                                    PressVK(0x42);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton1)
                                 {
                                     Console.Write("c");
+                                    PressVK(0x43);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton2)
                                 {
                                     Console.Write("e");
+                                    PressVK(0x45);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton3)
                                 {
                                     Console.Write("f");
+                                    PressVK(0x46);
                                 }
-                                else //if (DigitTravel.x < TravMin * 3)
+                                else 
                                 {
                                     Console.Write("g");
+                                    PressVK(0x47);
                                 }
                             }
                             else if (DigitTravel.AngleTo(Vector.YAxis) < AngToll || DigitTravel.AngleTo(Vector.YAxis) > pi - AngToll)
@@ -333,21 +353,25 @@ class LeapListener
                             {
                                 //Console.Write("\n");
                                 Console.Write("_");
+                                    PressVK(0x20);
                             }
                             else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
                             {
                                 //Console.Write("X moion\n");
                                 if (DigitTravel.x < -TravMin * TravMinButton3)
                                 {
-                                    Console.Write(";");
+                                    Console.Write("BS");
+                                    PressVK(0x08);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton2)
                                 {
                                     Console.Write(",");
+                                    PressVK(0xBC);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton1)
                                 {
                                     Console.Write(".");
+                                    PressVK(0xBE);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton2)
                                 {
@@ -360,6 +384,7 @@ class LeapListener
                                 else
                                 {
                                     Console.Write("\n");
+                                    PressVK(0x0D);
                                 }
                             }
                         }
@@ -369,6 +394,7 @@ class LeapListener
                             {
                                 //Console.Write("\n");
                                 Console.Write("k");
+                                PressVK(0x4B);
                             }
                             else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
                             {
@@ -376,26 +402,32 @@ class LeapListener
                                 if (DigitTravel.x < -TravMin * TravMinButton3)
                                 {
                                     Console.Write("h");
+                                    PressVK(0x48);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton2)
                                 {
                                     Console.Write("i");
+                                    PressVK(0x49);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton1)
                                 {
                                     Console.Write("j");
+                                    PressVK(0x4A);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton2)
                                 {
                                     Console.Write("l");
+                                    PressVK(0x4C);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton3)
                                 {
                                     Console.Write("m");
+                                    PressVK(0x4D);
                                 }
                                 else
                                 {
                                     Console.Write("n");
+                                    PressVK(0x4E);
                                 }
                             }
                         }
@@ -405,6 +437,7 @@ class LeapListener
                             {
                                 //Console.Write("\n");
                                 Console.Write("r");
+                                PressVK(0x52);
                             }
                             else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
                             {
@@ -412,26 +445,32 @@ class LeapListener
                                 if (DigitTravel.x < -TravMin * TravMinButton3)
                                 {
                                     Console.Write("o");
+                                    PressVK(0x4F);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton2)
                                 {
                                     Console.Write("p");
+                                    PressVK(0x50);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton1)
                                 {
                                     Console.Write("q");
+                                    PressVK(0x51);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton2)
                                 {
                                     Console.Write("s");
+                                    PressVK(0x53);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton3)
                                 {
                                     Console.Write("t");
+                                    PressVK(0x54);
                                 }
                                 else
                                 {
                                     Console.Write("u");
+                                    PressVK(0x55);
                                 }
                             }
                         }
@@ -441,6 +480,7 @@ class LeapListener
                             {
                                 //Console.Write("\n");
                                 Console.Write("y");
+                                PressVK(0x59);
                             }
                             else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
                             {
@@ -448,18 +488,22 @@ class LeapListener
                                 if (DigitTravel.x < -TravMin * TravMinButton3)
                                 {
                                     Console.Write("v");
+                                    PressVK(0x56);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton2)
                                 {
                                     Console.Write("w");
+                                    PressVK(0x57);
                                 }
                                 else if (DigitTravel.x < -TravMin * TravMinButton1)
                                 {
                                     Console.Write("x");
+                                    PressVK(0x58);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton2)
                                 {
                                     Console.Write("z");
+                                    PressVK(0x5A);
                                 }
                                 else if (DigitTravel.x < TravMin * TravMinButton3)
                                 {
