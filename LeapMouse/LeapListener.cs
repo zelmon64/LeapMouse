@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Leap;
-//using System.Threading;
 
 class LeapListener
 {
@@ -15,12 +14,6 @@ class LeapListener
     public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
     [DllImport("user32.dll", SetLastError = true)]
     static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
-    
-    public const int KEYEVENTF_KEYDOWN = 0; //Key down flag
-    public const int KEYEVENTF_KEYUP = 0x0002; //Key up flag
-    /*public const int VK_LCONTROL = 0xA2; //Left Control key code
-    public const int A = 0x41; //A key code
-    public const int C = 0x43; //C key code*/
 
     private Object thisLock = new Object();
 
@@ -91,134 +84,135 @@ class LeapListener
         keybd_event(key, 0, 0x0002, 0);
     }
 
-    public void DigitButtonEvent(string SymbolString,
-        byte VKey0, byte VKey1, byte VKey2, byte VKey3, byte VKey4, byte VKey5, byte VKey6)
+    public void DigitButtonEvent(string SymbolString, bool[] DeletePrevious,
+        byte[] VKey) //byte VKey0, byte VKey1, byte VKey2, byte VKey3, byte VKey4, byte VKey5, byte VKey6)
     {
         //double TravMin = 0.0002;
-        double TravMinNew = 150 * TravMin;
+        double TravMinNew = 300 * TravMin;
         //TravMinew /= 2;
+        /*
         double TravMinButton1 = 0.5 * 2;
         double TravMinButton2 = 1.5 * 2;
         double TravMinButton3 = 2.5 * 2;
-
-        //double AngToll = 0.4;
-        //double pi = 3.141592;
-
-        /*if (DigitType == DigitTypeTarget)
-        //{
-        if (DigitTravel.Magnitude < TravMin)
+        */
+        for (int f = 0; f < VKey.Length; f++)
         {
-            if (DigitButton != 0)
+            if (DigitTravel.x < TravMinNew * (f + 1 - VKey.Length/2.0))
             {
-                Console.Write("d");
-                if (DigitButton != -10) { PressVK(0x08); }
-                PressVK(0x44);
-                DigitButton = 0;
-            }
-        }
-        else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
-        {*/
-            //Console.Write("X moion\n");
-            if (DigitTravel.x < -TravMinNew * TravMinButton3)
-            {
-                newDigitButton = 0;
+                newDigitButton = f;
                 if (DigitButton != newDigitButton)
                 {
                     Console.Write(SymbolString[newDigitButton]);
                     //Console.Write("a");
                     //keybd_event(0x41, 0, 0x0002, 0);
-                    if (DigitButton != -10) { PressVK(0x08); }
-                    PressVK(VKey0);
+                    if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
+                    PressVK(VKey[newDigitButton]);
+                    //PressVK(VKey0);
                     //keybd_event(0x41, 0, 0, 0);
                     DigitButton = newDigitButton;
                 }
+                f = VKey.Length;
             }
-            else if (DigitTravel.x < -TravMinNew * TravMinButton2)
-            {
-                newDigitButton = 1;
-                if (DigitButton != newDigitButton)
-                {
-                    Console.Write(SymbolString[newDigitButton]);
-                    //Console.Write("b");
-                    if (DigitButton != -10) { PressVK(0x08); }
-                    PressVK(VKey1);
-                    //PressVK(0x42);
-                    DigitButton = newDigitButton;
-                }
-            }
-            else if (DigitTravel.x < -TravMinNew * TravMinButton1)
-            {
-                newDigitButton = 2;
-                if (DigitButton != newDigitButton)
-                {
-                    Console.Write(SymbolString[newDigitButton]);
-                    //Console.Write("c");
-                    if (DigitButton != -10) { PressVK(0x08); }
-                    PressVK(VKey2);
-                    //PressVK(0x43);
-                    DigitButton = newDigitButton;
-                }
-            }
-            else if (DigitTravel.x < TravMinNew * TravMinButton1)
-            {
-                newDigitButton = 3;
-                if (DigitButton != newDigitButton)
-                {
-                    Console.Write(SymbolString[newDigitButton]);
-                    //Console.Write("d");
-                    if (DigitButton != -10) { PressVK(0x08); }
-                    PressVK(VKey3);
-                    //PressVK(0x44);
-                    DigitButton = newDigitButton;
-                }
-            }
-            else if (DigitTravel.x < TravMinNew * TravMinButton2)
-            {
-                newDigitButton = 4;
-                if (DigitButton != newDigitButton)
-                {
-                    Console.Write(SymbolString[newDigitButton]);
-                    //Console.Write("e");
-                    if (DigitButton != -10) { PressVK(0x08); }
-                    PressVK(VKey4);
-                    //PressVK(0x45);
-                    DigitButton = newDigitButton;
-                }
-            }
-            else if (DigitTravel.x < TravMinNew * TravMinButton3)
-            {
-                newDigitButton = 5;
-                if (DigitButton != newDigitButton)
-                {
-                    Console.Write(SymbolString[newDigitButton]);
-                    //Console.Write("f");
-                    if (DigitButton != -10) { PressVK(0x08); }
-                    PressVK(VKey5);
-                    //PressVK(0x46);
-                    DigitButton = newDigitButton;
-                }
-            }
-            else
-            {
-                newDigitButton = 6;
-                if (DigitButton != newDigitButton)
-                {
-                    Console.Write(SymbolString[newDigitButton]);
-                    //Console.Write("g");
-                    if (DigitButton != -10) { PressVK(0x08); }
-                    PressVK(VKey6);
-                    //PressVK(0x47);
-                    DigitButton = newDigitButton;
-                }
-            }/*
         }
-        else if (DigitTravel.AngleTo(Vector.YAxis) < AngToll || DigitTravel.AngleTo(Vector.YAxis) > pi - AngToll)
+        /*
+        if (DigitTravel.x < -TravMinNew * TravMinButton3)
         {
-            Console.Write("Y moion\n");
+            newDigitButton = 0;
+            if (DigitButton != newDigitButton)
+            {
+                Console.Write(SymbolString[newDigitButton]);
+                //Console.Write("a");
+                //keybd_event(0x41, 0, 0x0002, 0);
+                if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
+                PressVK(VKey[newDigitButton]);
+                //PressVK(VKey0);
+                //keybd_event(0x41, 0, 0, 0);
+                DigitButton = newDigitButton;
+            }
         }
-        else if (DigitTravel.AngleTo(Vector.ZAxis) < AngToll || DigitTravel.AngleTo(Vector.ZAxis) > pi - AngToll)
+        else if (DigitTravel.x < -TravMinNew * TravMinButton2)
         {
-            Console.Write("Z moion\n");
+            newDigitButton = 1;
+            if (DigitButton != newDigitButton)
+            {
+                Console.Write(SymbolString[newDigitButton]);
+                //Console.Write("b");
+                if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
+                PressVK(VKey[newDigitButton]);
+                //PressVK(VKey1);
+                //PressVK(0x42);
+                DigitButton = newDigitButton;
+            }
+        }
+        else if (DigitTravel.x < -TravMinNew * TravMinButton1)
+        {
+            newDigitButton = 2;
+            if (DigitButton != newDigitButton)
+            {
+                Console.Write(SymbolString[newDigitButton]);
+                //Console.Write("c");
+                if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
+                PressVK(VKey[newDigitButton]);
+                //PressVK(VKey2);
+                //PressVK(0x43);
+                DigitButton = newDigitButton;
+            }
+        }
+        else if (DigitTravel.x < TravMinNew * TravMinButton1)
+        {
+            newDigitButton = 3;
+            if (DigitButton != newDigitButton)
+            {
+                Console.Write(SymbolString[newDigitButton]);
+                //Console.Write("d");
+                if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
+                PressVK(VKey[newDigitButton]);
+                //PressVK(VKey3);
+                //PressVK(0x44);
+                DigitButton = newDigitButton;
+            }
+        }
+        else if (DigitTravel.x < TravMinNew * TravMinButton2)
+        {
+            newDigitButton = 4;
+            if (DigitButton != newDigitButton)
+            {
+                Console.Write(SymbolString[newDigitButton]);
+                //Console.Write("e");
+                if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
+                PressVK(VKey[newDigitButton]);
+                //PressVK(VKey4);
+                //PressVK(0x45);
+                DigitButton = newDigitButton;
+            }
+        }
+        else if (DigitTravel.x < TravMinNew * TravMinButton3)
+        {
+            newDigitButton = 5;
+            if (DigitButton != newDigitButton)
+            {
+                Console.Write(SymbolString[newDigitButton]);
+                //Console.Write("f");
+                if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
+                PressVK(VKey[newDigitButton]);
+                //PressVK(VKey5);
+                //PressVK(0x46);
+                DigitButton = newDigitButton;
+            }
+        }
+        else
+        {
+            newDigitButton = 6;
+            if (DigitButton != newDigitButton)
+            {
+                Console.Write(SymbolString[newDigitButton]);
+                //Console.Write("g");
+                if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
+                PressVK(VKey[newDigitButton]);
+                //PressVK(VKey6);
+                //PressVK(0x47);
+                DigitButton = newDigitButton;
+            }
         }*/
     }
 
@@ -284,7 +278,7 @@ class LeapListener
             int prevPressedFingers = 0;
             int prevPressedFingersConfig = 0;
             double pressedmin = 0.025;
-            pressedmin = 0.05;
+            //pressedmin = 0.05;
             double pitchmax = -1.2;
             int DigitID = 0;
             int prevDigitID = 0;
@@ -366,11 +360,12 @@ class LeapListener
             /*
             FingersConfig = 31 - PressedFingersConfig;
             prevFingersConfig = 31 - prevPressedFingersConfig;
-            *
+            */
             PressedFingers = 5 - ExtendedFingers;
             prevPressedFingers = 5 - prevExtendedFingers;
             PressedFingersConfig = 31 - FingersConfig;
             prevPressedFingersConfig = 31 - prevFingersConfig;
+            /*
             DigitID = eDigitID;
             prevDigitID = preveDigitID;
             */
@@ -392,7 +387,7 @@ class LeapListener
                         CursorYPos = 500;
                         Console.Write("Mouse on \n");
                     }
-                    else if (FingersConfig == 19 && prevFingersConfig == 3)
+                    else if (FingersConfig == 6 && prevFingersConfig == 2)
                     {
                         KbOn = true;
                         Console.Write("Keyboard on \n");
@@ -401,25 +396,29 @@ class LeapListener
                 }
                 else if (KbOn)
                 {
-                    if (FingersConfig == 1 && prevFingersConfig == 3 && PalmDir.Roll < 1 && PalmDir.Roll > -1)
+                    if (FingersConfig == 14 && prevFingersConfig == 15) //&& PalmDir.Roll < 1 && PalmDir.Roll > -1)
                     {
                         KbOn = false;
                         Console.Write("Keyboard off \n");
                     }
                     if (PressedFingers != prevPressedFingers)
                     {
-                        if (PressedFingers > 1 && prevPressedFingersConfig > 1)//(hand.Fingers[DigitID].Type != Finger.FingerType.TYPE_INDEX || prevHand.Fingers[prevDigitID].Type != Finger.FingerType.TYPE_INDEX)
+                        if (PressedFingers > 3 && prevPressedFingersConfig > 3)//(hand.Fingers[DigitID].Type != Finger.FingerType.TYPE_INDEX || prevHand.Fingers[prevDigitID].Type != Finger.FingerType.TYPE_INDEX)
                         {
                             Console.Write("Pressed fingers: " + PressedFingers + ", Pressed fingers config: " + PressedFingersConfig + ", Digit Id: " + DigitID + "\n");
                         }
-                    }
-                    if (PressedFingers == 1 && prevPressedFingers != 1)
+                        DigitTravel = Vector.Zero;
+                        DigitOrig = currentPalmPosition;
+                        DigitButton = -10;
+                    }/*
+                    if (PressedFingers == 3 && prevPressedFingers != 3)
                     {
                         DigitTravel = Vector.Zero;
                         DigitOrig = currentPalmPosition;
                         DigitButton = -10;
-                    }
-                    if (PressedFingers == 1 && prevPressedFingers == 1 && FingersConfig == prevFingersConfig)
+                    }*/
+                    //if (PressedFingers == 3 && prevPressedFingers == PressedFingers && FingersConfig == prevFingersConfig)
+                    if (FingersConfig == prevFingersConfig)
                     {
                         /*
                         double dPalmPitch = hand.Fingers[DigitID].StabilizedTipPosition.x - prevHand.Fingers[DigitID].StabilizedTipPosition.x;
@@ -440,427 +439,70 @@ class LeapListener
                         {
                             DigitTravel += dDigitPos;
                         }*/
+
+                        //int currDigitID;
                         DigitTravel = currentPalmPosition - DigitOrig;
                         /*
-                    }
-                    if (PressedFingers == 1 && prevPressedFingers == 1)
-                    {*/
                         Leap.Finger.FingerType DigitType = prevHand.Fingers[prevDigitID].Type;
-                        /*
-                        Console.Write("Digit {0} moved ({1}, {2}, {3})\n",
-                            DigitType, DigitTravel.x, DigitTravel.y, DigitTravel.z);
-                        *
-                        TravMin = 300 * TravMin;
-                        TravMin /= 2;
-                        double TravMinButton1 = 0.5 * 2;
-                        double TravMinButton2 = 1.5 * 2;
-                        double TravMinButton3 = 2.5 * 2;
-
-                        double AngToll = 0.4;
-                        double pi = 3.141592;
-                        /*
-                        if (DigitType == Finger.FingerType.TYPE_INDEX)
+                        //Leap.Finger.FingerType DigitType = hand.Fingers[currDigitID].Type;
+                        if (FingersConfig == 3)
                         {
-                            if (DigitTravel.Magnitude < TravMin)
-                            {
-                                if (DigitButton != 0)
-                                {
-                                    Console.Write("d");
-                                    if (DigitButton != -10) {PressVK(0x08);}
-                                    PressVK(0x44);
-                                    DigitButton = 0;
-                                }
-                            }
-                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
-                            {
-                                //Console.Write("X moion\n");
-                                if (DigitTravel.x < -TravMin * TravMinButton3)
-                                {
-                                    if (DigitButton != -3)
-                                    {
-                                        Console.Write("a");
-                                        keybd_event(0x41, 0, 0x0002, 0);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                        keybd_event(0x41, 0, 0, 0);
-                                        DigitButton = -3; }
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton2)
-                                {
-                                    if (DigitButton != -2)
-                                    {
-                                        Console.Write("b");
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                        PressVK(0x42);
-                                        DigitButton = -2; }
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton1)
-                                {
-                                    if (DigitButton != -1)
-                                    {
-                                        Console.Write("c");
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                        PressVK(0x43);
-                                        DigitButton = -1;
-                                    }
-                                }
-                                else if (DigitTravel.x < TravMin * TravMinButton2)
-                                {
-                                    if (DigitButton != 1)
-                                    {
-                                        Console.Write("e");
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                        PressVK(0x45);
-                                        DigitButton = 1; }
-                                }
-                                else if (DigitTravel.x < TravMin * TravMinButton3)
-                                {
-                                    if (DigitButton != 2)
-                                    {
-                                        Console.Write("f");
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                        PressVK(0x46);
-                                        DigitButton = 2; }
-                                }
-                                else 
-                                {
-                                    if (DigitButton != 3)
-                                    {
-                                        Console.Write("g");
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                        PressVK(0x47);
-                                        DigitButton = 3; }
-                                }
-                            }
-                            else if (DigitTravel.AngleTo(Vector.YAxis) < AngToll || DigitTravel.AngleTo(Vector.YAxis) > pi - AngToll)
-                            {
-                                Console.Write("Y moion\n");
-                            }
-                            else if (DigitTravel.AngleTo(Vector.ZAxis) < AngToll || DigitTravel.AngleTo(Vector.ZAxis) > pi - AngToll)
-                            {
-                                Console.Write("Z moion\n");
-                            }
-                        }
-                        else if (DigitType == Finger.FingerType.TYPE_THUMB)
-                        {
-                            if (DigitTravel.Magnitude < TravMin)
-                            {
-                                //Console.Write("\n");
-                                Console.Write("_");
-                                    PressVK(0x20);
-                            }
-                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
-                            {
-                                //Console.Write("X moion\n");
-                                if (DigitTravel.x < -TravMin * TravMinButton3)
-                                {
-                                    Console.Write("BS");
-                                    PressVK(0x08);
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton2)
-                                {
-                                    Console.Write(",");
-                                    PressVK(0xBC);
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton1)
-                                {
-                                    Console.Write(".");
-                                    PressVK(0xBE);
-                                }
-                                else if (DigitTravel.x < TravMin * TravMinButton2)
-                                {
-                                    Console.Write("?");
-                                }
-                                else if (DigitTravel.x < TravMin * TravMinButton3)
-                                {
-                                    Console.Write("!");
-                                }
-                                else
-                                {
-                                    Console.Write("\n");
-                                    PressVK(0x0D);
-                                }
-                            }
-                        }
-                        else if (DigitType == Finger.FingerType.TYPE_MIDDLE)
-                        {
-                            if (DigitTravel.Magnitude < TravMin)
-                            {
-                                newDigitButton = 0;
-                                if (DigitButton != newDigitButton)
-                                {
-                                    Console.Write("k");
-                                    PressVK(0x4B);
-                                    if (DigitButton != -10) { PressVK(0x08); }
-                                }
-                                else { DigitButton = newDigitButton; }
-                            }
-                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
-                            {
-                                //Console.Write("X moion\n");
-                                if (DigitTravel.x < -TravMin * TravMinButton3)
-                                {
-                                    newDigitButton = -3;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("h");
-                                        PressVK(0x48);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton2)
-                                {
-                                    newDigitButton = -2;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("i");
-                                        PressVK(0x49);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton1)
-                                {
-                                    newDigitButton = -1;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("j");
-                                        PressVK(0x4A);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < TravMin * TravMinButton2)
-                                {
-                                    newDigitButton = 1;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("l");
-                                        PressVK(0x4C);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < TravMin * TravMinButton3)
-                                {
-                                    newDigitButton = 2;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("m");
-                                        PressVK(0x4D);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else
-                                {
-                                    newDigitButton = 3;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("n");
-                                        PressVK(0x4E);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                            }
-                        }
-                        else if (DigitType == Finger.FingerType.TYPE_RING)
-                        {
-                            if (DigitTravel.Magnitude < TravMin)
-                            {
-                                newDigitButton = 0;
-                                if (DigitButton != newDigitButton)
-                                {
-                                    Console.Write("r");
-                                    PressVK(0x52);
-                                    if (DigitButton != -10) { PressVK(0x08); }
-                                }
-                                else { DigitButton = newDigitButton; }
-                            }
-                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
-                            {
-                                //Console.Write("X moion\n");
-                                if (DigitTravel.x < -TravMin * TravMinButton3)
-                                {
-                                    newDigitButton = -3;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("o");
-                                        PressVK(0x4F);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton2)
-                                {
-                                    newDigitButton = -2;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("p");
-                                        PressVK(0x50);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton1)
-                                {
-                                    newDigitButton = -1;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("q");
-                                        PressVK(0x51);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < TravMin * TravMinButton2)
-                                {
-                                    newDigitButton = 1;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("s");
-                                        PressVK(0x53);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < TravMin * TravMinButton3)
-                                {
-                                    newDigitButton = 2;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("t");
-                                        PressVK(0x54);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else
-                                {
-                                    newDigitButton = 3;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("u");
-                                        PressVK(0x55);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                            }
-                        }
-                        else if (DigitType == Finger.FingerType.TYPE_PINKY)
-                        {
-                            if (DigitTravel.Magnitude < TravMin)
-                            {
-                                newDigitButton = 0;
-                                if (DigitButton != newDigitButton)
-                                {
-                                    Console.Write("y");
-                                    PressVK(0x59);
-                                    if (DigitButton != -10) { PressVK(0x08); }
-                                }
-                                else { DigitButton = newDigitButton; }
-                            }
-                            else if (DigitTravel.AngleTo(Vector.XAxis) < AngToll || DigitTravel.AngleTo(Vector.XAxis) > pi - AngToll)
-                            {
-                                //Console.Write("X moion\n");
-                                if (DigitTravel.x < -TravMin * TravMinButton3)
-                                {
-                                    newDigitButton = -3;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("v");
-                                        PressVK(0x56);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton2)
-                                {
-                                    newDigitButton = -2;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("w");
-                                        PressVK(0x57);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else if (DigitTravel.x < -TravMin * TravMinButton1)
-                                {
-                                    newDigitButton = -1;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("x");
-                                        PressVK(0x58);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else //if (DigitTravel.x < TravMin * TravMinButton2)
-                                {
-                                    newDigitButton = 1;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        Console.Write("z");
-                                        PressVK(0x5A);
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }/*
-                                else if (DigitTravel.x < TravMin * TravMinButton3)
-                                {
-                                    Console.Write("t");
-                                    newDigitButton = ;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }
-                                else
-                                {
-                                    Console.Write("u");
-                                    newDigitButton = ;
-                                    if (DigitButton != newDigitButton)
-                                    {
-                                        if (DigitButton != -10) { PressVK(0x08); }
-                                    }
-                                    else { DigitButton = newDigitButton; }
-                                }*
-                            }
+                            DigitType = Leap.Finger.FingerType.TYPE_MIDDLE;
                         }*/
-                        if (DigitType == Finger.FingerType.TYPE_INDEX)
+                        
+                        //if (DigitType == Finger.FingerType.TYPE_INDEX)
+                        if(FingersConfig == 3)
                         {
+                            /*
                             DigitButtonEvent("abcdefg", 
-                                0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47);
+                                new bool[] {true, true, true, true, true, true, true},
+                                new byte[] {0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47});
+                             */
+                            DigitButtonEvent("abcdefghijklm",
+                                new bool[] { true, true, true, true, true, true, true, true, true, true, true, true, true },
+                                new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D });
                         }
-                        else if (DigitType == Finger.FingerType.TYPE_MIDDLE)
+                        else if (FingersConfig == 30) // (DigitType == Finger.FingerType.TYPE_MIDDLE)
                         {
+                            /*
                             DigitButtonEvent("hijklmn",
-                                0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E);
+                                new bool[] {true, true, true, true, true, true, true},
+                                new byte[] {0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E});
+                             */
+                            DigitButtonEvent("nopqrstuvwxyz",
+                                new bool[] { true, true, true, true, true, true, true, true, true, true, true, true, true },
+                                new byte[] { 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A });
                         }
+                        else if (FingersConfig == 19)
+                        {
+                            DigitButtonEvent("BCC_.,N",
+                                new bool[] { false, false, false, true, true, true, true },
+                                new byte[] { 0x08, 0x14, 0x14, 0x20, 0xBE, 0xBC, 0x0D });
+                        }
+                        /*
                         else if (DigitType == Finger.FingerType.TYPE_RING)
                         {
                             DigitButtonEvent("opqrstu",
-                                0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55);
+                                new bool[] {true, true, true, true, true, true, true},
+                                new byte[] {0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55});
                         }
                         else if (DigitType == Finger.FingerType.TYPE_PINKY)
                         {
                             DigitButtonEvent("vwxyz.,",
-                                0x56, 0x57, 0x58, 0x59, 0x5A, 0xBE, 0xBC);
+                                new bool[] {true, true, true, true, true, true, true},
+                                new byte[] {0x56, 0x57, 0x58, 0x59, 0x5A, 0xBE, 0xBC});
                         }
                         else if (DigitType == Finger.FingerType.TYPE_THUMB)
                         {
-                            DigitButtonEvent("BBT_.,N",
-                                0x08, 0x08, 0x09, 0x20, 0xBE, 0xBC, 0x0D);
+                            DigitButtonEvent("TCB_.,N",
+                                new bool[] {true, false, false, true, true, true, true},
+                                new byte[] {0x09, 0x14, 0x08, 0x20, 0xBE, 0xBC, 0x0D});
                         }
                         else
                         {
                             Console.Write("Digit {0} moved ({1}, {2}, {3})\n",
-                            DigitType, DigitTravel.x, DigitTravel.y, DigitTravel.z);
-                        }
+                                FingersConfig, DigitTravel.x, DigitTravel.y, DigitTravel.z);
+                        }*/
                     } 
                 }
                 else if (MouseOn)
