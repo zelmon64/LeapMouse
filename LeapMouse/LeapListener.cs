@@ -379,30 +379,36 @@ class LeapListener
                             DigitType = Leap.Finger.FingerType.TYPE_MIDDLE;
                         }*/
                         
-                        //if (DigitType == Finger.FingerType.TYPE_INDEX)
                         if(FingersConfig == 3)
                         {
-                            /*
-                            RadDigitButtonEvent(new string[][] {new string[] { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m" } },
-                                new bool[][] {new bool[]{ true, true, true, true, true, true, true, true, true, true, true, true, true }},
-                                new byte[][] {new byte[]{ 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D }});
-                             */
-                            RadDigitButtonEvent(new string[][] { new string[] { "a", "b", "c", "d", "e", "f", "g", "h", "i"}},//, "j", "k", "l", "m" } },
-                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49 } });//, 0x4A, 0x4B, 0x4C, 0x4D } });
+                            RadDigitButtonEvent(new string[][] { new string[] { "a", "b", "c", "d", "e", "f", "g", "h"}},//, "i"}},//, "j", "k", "l", "m" } },
+                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true}},//, true } },//, true, true, true, true } },
+                                new byte[][] { new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48}});//, 0x49 } });//, 0x4A, 0x4B, 0x4C, 0x4D } });
 
                         }
-                        else if (FingersConfig == 6) // (DigitType == Finger.FingerType.TYPE_MIDDLE)
+                        else if (FingersConfig == 6) 
                         {
-                            RadDigitButtonEvent(new string[][] { new string[] { "j", "k", "l", "m", "n", "o", "p", "q", "r" } },//, "s", "t", "u", "v", "w", "x", "y", "z" } },
-                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52 } });//, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A } });
+                            RadDigitButtonEvent(new string[][] { new string[] { "i", "j", "k", "l", "m", "n", "o", "p"}},//, "q", "r" } },//, "s", "t", "u", "v", "w", "x", "y", "z" } },
+                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true}},//, true } },//, true, true, true, true } },
+                                new byte[][] { new byte[] { 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50}});//, 0x51, 0x52 } });//, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A } });
                         }
-                        else if (FingersConfig == 7) // (DigitType == Finger.FingerType.TYPE_MIDDLE)
+                        else if (FingersConfig == 7) 
                         {
-                            RadDigitButtonEvent(new string[][] { new string[] { "s", "t", "u", "v", "w", "x", "y", "z" } },
+                            RadDigitButtonEvent(new string[][] { new string[] { "q", "r", "s", "t", "u", "v", "w", "x"}},//, "y", "z" } },
                                 new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A } });
+                                new byte[][] { new byte[] { 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58 } });//, 0x59, 0x5A } });
+                        }
+                        else if (FingersConfig == 18)
+                        {
+                            RadDigitButtonEvent(new string[][] { new string[] { "y", "z", "0", "1", "2", "3", "4", "5" } },
+                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },//, true, true, true, true } },
+                                new byte[][] { new byte[] { 0x59, 0x5A, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35 } });
+                        }
+                        else if (FingersConfig == 19)
+                        {
+                            RadDigitButtonEvent(new string[][] { new string[] { "6", "7", "8", "9", "-", "=", ",", "." } },
+                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },
+                                new byte[][] { new byte[] { 0x36, 0x37, 0x38, 0x39, 0xBD, 0xBB, 0xBC, 0xBE } });
                         }
                         else if (FingersConfig == 30)
                         {
