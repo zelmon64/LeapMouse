@@ -84,7 +84,7 @@ class LeapListener
         keybd_event(key, 0, 0x0002, 0);
     }
 
-    public void DigitButtonEvent(string SymbolString, bool[] DeletePrevious,
+    public void LinDigitButtonEvent(string SymbolString, bool[] DeletePrevious,
         byte[] VKey) //byte VKey0, byte VKey1, byte VKey2, byte VKey3, byte VKey4, byte VKey5, byte VKey6)
     {
         //double TravMin = 0.0002;
@@ -214,6 +214,56 @@ class LeapListener
                 DigitButton = newDigitButton;
             }
         }*/
+    }
+
+    public void RadDigitButtonEvent(string[][] SymbolString, bool[][] DeletePrevious, byte[][] VKey)
+    {
+        //Console.WriteLine("\nLength: {0}, [0]Length: {1}\n", VKey.Length, VKey[0].Length);
+        double TravMinNew = 300 * TravMin;
+        //TravMinNew *= 3;
+        double pi = 3.141592;
+        double DigitAngle;
+        for (int g = 0; g < VKey.Length; g++)
+        {
+            int vklength = VKey[g].Length;
+            TravMinNew *= vklength/2.0;
+            if (DigitTravel.Magnitude > TravMinNew * (g + 0.5))
+            {
+                //int vklength = VKey[g].Length;
+                for (int f = 0; f < vklength; f++)
+                {
+                    if (DigitTravel.AngleTo(Vector.XAxis)<pi/2.0) 
+                    {
+                        DigitAngle = DigitTravel.AngleTo(Vector.YAxis);
+                    }
+                    else
+                    {
+                        //DigitAngle = -DigitTravel.AngleTo(Vector.YAxis);
+                        DigitAngle = 2*pi-DigitTravel.AngleTo(Vector.YAxis);
+                    }
+                    //Console.WriteLine("Magnitude: {0}, [0]Angle: {1}\n", DigitTravel.Magnitude, DigitAngle);
+                    //if (DigitAngle < 2 * pi / VKey[g].Length * (f + 1 - VKey[g].Length / 2.0))
+                    if (DigitAngle < 2 * pi / VKey[g].Length * (f + 1))
+                    {
+                        newDigitButton = f;
+                        if (DigitButton != newDigitButton)
+                        {
+                            Console.Write(SymbolString[g][newDigitButton]);
+                            //Console.Write("a");
+                            //keybd_event(0x41, 0, 0x0002, 0);
+                            if (DigitButton != -10 && DeletePrevious[g][DigitButton]) { PressVK(0x08); }
+                            PressVK(VKey[g][newDigitButton]);
+                            //PressVK(VKey0);
+                            //keybd_event(0x41, 0, 0, 0);
+                            DigitButton = newDigitButton;
+                            Console.WriteLine("Angle: {0}\n", DigitAngle);
+                        }
+                        f = VKey[g].Length;
+                        g = VKey.Length;
+                    }
+                }
+            }
+        }
     }
 
     public void OnLogMessage(object sender, LogEventArgs args)
@@ -409,6 +459,7 @@ class LeapListener
                         }
                         DigitTravel = Vector.Zero;
                         DigitOrig = currentPalmPosition;
+                        //DigitOrig = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition);
                         DigitButton = -10;
                     }/*
                     if (PressedFingers == 3 && prevPressedFingers != 3)
@@ -442,6 +493,7 @@ class LeapListener
 
                         //int currDigitID;
                         DigitTravel = currentPalmPosition - DigitOrig;
+                        //DigitTravel = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition) - DigitOrig;
                         /*
                         Leap.Finger.FingerType DigitType = prevHand.Fingers[prevDigitID].Type;
                         //Leap.Finger.FingerType DigitType = hand.Fingers[currDigitID].Type;
@@ -454,47 +506,63 @@ class LeapListener
                         if(FingersConfig == 3)
                         {
                             /*
-                            DigitButtonEvent("abcdefg", 
+                            LinDigitButtonEvent("abcdefg", 
                                 new bool[] {true, true, true, true, true, true, true},
                                 new byte[] {0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47});
-                             */
-                            DigitButtonEvent("abcdefghijklm",
+                             *
+                            LinDigitButtonEvent("abcdefghijklm",
                                 new bool[] { true, true, true, true, true, true, true, true, true, true, true, true, true },
                                 new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D });
+                            */
+                            //Console.WriteLine("\nType event 3\n");
+                            RadDigitButtonEvent(new string[][] {new string[] { "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m" } },
+                                new bool[][] {new bool[]{ true, true, true, true, true, true, true, true, true, true, true, true, true }},
+                                new byte[][] {new byte[]{ 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D }});
                         }
-                        else if (FingersConfig == 30) // (DigitType == Finger.FingerType.TYPE_MIDDLE)
+                        else if (FingersConfig == 7) // (DigitType == Finger.FingerType.TYPE_MIDDLE)
                         {
                             /*
-                            DigitButtonEvent("hijklmn",
+                            LinDigitButtonEvent("hijklmn",
                                 new bool[] {true, true, true, true, true, true, true},
                                 new byte[] {0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E});
-                             */
-                            DigitButtonEvent("nopqrstuvwxyz",
+                             *
+                            LinDigitButtonEvent("nopqrstuvwxyz",
                                 new bool[] { true, true, true, true, true, true, true, true, true, true, true, true, true },
                                 new byte[] { 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A });
+                            */
+                            //Console.WriteLine("\nType event 30\n");
+                            RadDigitButtonEvent(new string[][] { new string[] { "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" } },
+                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true, true, true, true, true, true } },
+                                new byte[][] { new byte[] { 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A } });
                         }
                         else if (FingersConfig == 19)
                         {
-                            DigitButtonEvent("BCC_.,N",
+                            /*
+                            LinDigitButtonEvent("BCC_.,N",
                                 new bool[] { false, false, false, true, true, true, true },
                                 new byte[] { 0x08, 0x14, 0x14, 0x20, 0xBE, 0xBC, 0x0D });
+                            */
+                            //Console.WriteLine("\nType event 19\n");
+                            RadDigitButtonEvent(new string[][] { new string[] { "B", "C", ".", "_", ",", "N" } },
+                                new bool[][] { new bool[] { false, false, true, true, true, true } },
+                                new byte[][] { new byte[] { 0x08, 0x14, 0xBE, 0x20, 0xBC, 0x0D } });
                         }
                         /*
                         else if (DigitType == Finger.FingerType.TYPE_RING)
                         {
-                            DigitButtonEvent("opqrstu",
+                            LinDigitButtonEvent("opqrstu",
                                 new bool[] {true, true, true, true, true, true, true},
                                 new byte[] {0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55});
                         }
                         else if (DigitType == Finger.FingerType.TYPE_PINKY)
                         {
-                            DigitButtonEvent("vwxyz.,",
+                            LinDigitButtonEvent("vwxyz.,",
                                 new bool[] {true, true, true, true, true, true, true},
                                 new byte[] {0x56, 0x57, 0x58, 0x59, 0x5A, 0xBE, 0xBC});
                         }
                         else if (DigitType == Finger.FingerType.TYPE_THUMB)
                         {
-                            DigitButtonEvent("TCB_.,N",
+                            LinDigitButtonEvent("TCB_.,N",
                                 new bool[] {true, false, false, true, true, true, true},
                                 new byte[] {0x09, 0x14, 0x08, 0x20, 0xBE, 0xBC, 0x0D});
                         }
