@@ -80,16 +80,23 @@ class LeapListener
         Console.WriteLine("  Failure message:" + args.ErrorMessage);
     }
 
-    public void PressVK(byte key, bool HoldKey)
+    //public void PressVK(byte key, bool HoldKey)
+    public void PressVK(byte key, bool ShiftKey)
     {
         byte bScan = 0;
-        if (!HoldKey)
+        //if (!HoldKey)
+        if (!ShiftKey)
         {
             keybd_event(key, bScan, 0x0001 | 0, 0);
             keybd_event(key, bScan, 0x0001 | 0x0002, 0);
         }
         else
         {
+            keybd_event(0x10, bScan, 0x0001 | 0, 0);
+            keybd_event(key, bScan, 0x0001 | 0, 0);
+            keybd_event(key, bScan, 0x0001 | 0x0002, 0);
+            keybd_event(0x10, bScan, 0x0001 | 0x0002, 0);
+            /*
             short keystate = GetKeyState(key);
             //Console.WriteLine("\nKey State: {0}\n", keystate);
             if (keystate == 0 || keystate == 1)
@@ -101,10 +108,10 @@ class LeapListener
             {
                 keybd_event(key, bScan, 0x0001 | 0x0002, 0);
                 Console.WriteLine("_OFF_");
-            }
+            }*/
         }
     }
-
+    /*
     public void LinDigitButtonEvent(string SymbolString, bool[] DeletePrevious, byte[] VKey, bool[] HoldKey)
     {
         double TravMinNew = 300 * TravMin;
@@ -123,19 +130,23 @@ class LeapListener
                 f = VKey.Length;
             }
         }
-    }
+    }*/
 
     public void RadDigitButtonEvent(string[][] SymbolString, bool[][] DeletePrevious, byte[][] VKey, bool[][] HoldKey)
     {
         //Console.WriteLine("\nLength: {0}, [0]Length: {1}\n", VKey.Length, VKey[0].Length);
         double TravMinNew = 300 * TravMin;
-        //TravMinNew *= 3;
+        TravMinNew *= 1.5;
         double pi = 3.141592;
         double DigitAngle;
-        for (int g = 0; g < VKey.Length; g++)
+        //for (int g = 0; g < VKey.Length; g++)
+        for (int g = VKey.Length - 1; g >= 0; g--)
         {
+            //Console.WriteLine("Magnitude: {0}, [0]Angle: {1}\n", DigitTravel.Magnitude, DigitAngle);
+            //Console.WriteLine("\nLength: {0}, [{2}]Length: {1}\n", VKey.Length, VKey[g].Length, g);
             int vklength = VKey[g].Length;
-            TravMinNew *= vklength/2.0;
+            //TravMinNew *= vklength/2.0;
+            //Console.WriteLine("Magnitude: {0}, [{2}]Length: {1}\n", DigitTravel.Magnitude, vklength, g);
             if (DigitTravel.Magnitude > TravMinNew * (g + 0.5))
             {
                 //int vklength = VKey[g].Length;
@@ -151,20 +162,30 @@ class LeapListener
                         DigitAngle = 2*pi-DigitTravel.AngleTo(Vector.YAxis);
                     }
                     //Console.WriteLine("Magnitude: {0}, [0]Angle: {1}\n", DigitTravel.Magnitude, DigitAngle);
+                    //Console.WriteLine("Angle: {0}\n", DigitAngle);
                     //if (DigitAngle < 2 * pi / VKey[g].Length * (f + 1 - VKey[g].Length / 2.0))
                     if (DigitAngle < 2 * pi / VKey[g].Length * (f + 1))
                     {
-                        newDigitButton = f;
-                        if (DigitButton != newDigitButton)
+                        //newDigitButton f;
+                        //newDigitButton = new Int32[] {g, f};
+                        //newDigitButton[0] = g;
+                        //newDigitButton[1] = f;
+                        //if (DigitButton != newDigitButton)
+                        if (DigitButton[0] != g || DigitButton[1] != f)
                         {
-                            Console.Write(SymbolString[g][newDigitButton]);
-                            if (DigitButton != -10 && DeletePrevious[g][DigitButton]) { PressVK(0x08, false); }
+                            Console.Write(SymbolString[g][f]);
+                            /*if (DigitButton != -10 && DeletePrevious[g][DigitButton]) { PressVK(0x08, false); }
                             PressVK(VKey[g][newDigitButton], HoldKey[g][newDigitButton]);
                             DigitButton = newDigitButton;
+                             */
+                            if (DigitButton[0] != -10 && DeletePrevious[DigitButton[0]][DigitButton[1]]) { PressVK(0x08, false); }
+                            PressVK(VKey[g][f], HoldKey[g][f]);
+                            DigitButton = new Int32[2] {g, f};
                             //Console.WriteLine("Angle: {0}\n", DigitAngle);
                         }
-                        f = VKey[g].Length;
-                        g = VKey.Length;
+                        f = vklength;
+                        //g = VKey.Length;
+                        g = -1;
                     }
                 }
             }
@@ -198,8 +219,10 @@ class LeapListener
     public Frame prevFrame;
     public Vector DigitTravel;
     public Vector DigitOrig;
-    public Int32 DigitButton;
-    public Int32 newDigitButton;
+    //public Int32 DigitButton;
+    //public Int32 newDigitButton;
+    public Int32[] DigitButton = new Int32[2];
+    //public Int32[] newDigitButton;
     public double TravMin = 0.0002;
     //public override void OnFrame(Controller controller)
     public void OnFrame(object sender, FrameEventArgs args)
@@ -365,7 +388,7 @@ class LeapListener
                         DigitTravel = Vector.Zero;
                         DigitOrig = currentPalmPosition;
                         //DigitOrig = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition);
-                        DigitButton = -10;
+                        DigitButton[0] = -10;
                     }
                     if (FingersConfig == prevFingersConfig)
                     {
@@ -402,40 +425,92 @@ class LeapListener
                         
                         if(FingersConfig == 3)
                         {
-                            RadDigitButtonEvent(new string[][] { new string[] { "a", "b", "c", "d", "e", "f", "g", "h"}},//, "i"}},//, "j", "k", "l", "m" } },
-                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true}},//, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48}},
-                                new bool [][] {new bool[] { false, false, false, false, false, false, false, false }});//, 0x49 } });//, 0x4A, 0x4B, 0x4C, 0x4D } });
+                            RadDigitButtonEvent(
+                                new string[][] { 
+                                    new string[] { "b", "c", "d", "e", "f", "g", "h", "i", "a" }, 
+                                    new string[] { "B", "C", "D", "E", "F", "G", "H", "I", "A" },
+                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" }},
+                                new bool[][] { 
+                                    new bool[] { true, true, true, true, true, true, true, true, true }, 
+                                    new bool[] { true, true, true, true, true, true, true, true, true },
+                                    new bool[] { true, true, false } },
+                                new byte[][] { 
+                                    new byte[] { 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x41 }, 
+                                    new byte[] { 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x41 },
+                                    new byte[] { 0x20, 0x0D, 0x08 } },
+                                new bool[][] { 
+                                    new bool[] { false, false, false, false, false, false, false, false, false }, 
+                                    new bool[] { true, true, true, true, true, true, true, true, true },
+                                    new bool[] { false, false, false } });
 
                         }
                         else if (FingersConfig == 6) 
                         {
-                            RadDigitButtonEvent(new string[][] { new string[] { "i", "j", "k", "l", "m", "n", "o", "p"}},//, "q", "r" } },//, "s", "t", "u", "v", "w", "x", "y", "z" } },
-                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true}},//, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50 } },
-                                new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });//, 0x51, 0x52 } });//, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A } });
+                            RadDigitButtonEvent(
+                                new string[][] { 
+                                    new string[] { "k", "l", "m", "n", "o", "p", "q", "r", "j" }, 
+                                    new string[] { "K", "L", "M", "N", "O", "P", "Q", "R", "J" },
+                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" } },
+                                new bool[][] { 
+                                    new bool[] { true, true, true, true, true, true, true, true, true }, 
+                                    new bool[] { true, true, true, true, true, true, true, true, true },
+                                    new bool[] { true, true, false } },
+                                new byte[][] { 
+                                    new byte[] { 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x4A },
+                                    new byte[] { 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x4A },
+                                    new byte[] { 0x20, 0x0D, 0x08 } },
+                                new bool[][] { 
+                                    new bool[] { false, false, false, false, false, false, false, false, false }, 
+                                    new bool[] { true, true, true, true, true, true, true, true, true },
+                                    new bool[] { false, false, false } });
                         }
                         else if (FingersConfig == 7) 
                         {
-                            RadDigitButtonEvent(new string[][] { new string[] { "q", "r", "s", "t", "u", "v", "w", "x"}},//, "y", "z" } },
-                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58 } },
-                                new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });//, 0x59, 0x5A } });
+                            RadDigitButtonEvent(
+                                new string[][] { 
+                                    new string[] { "t", "u", "v", "w", "x", "y", "z", "s" }, 
+                                    new string[] { "T", "U", "V", "W", "X", "Y", "Z", "S" },
+                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" } },
+                                new bool[][] { 
+                                    new bool[] { true, true, true, true, true, true, true, true }, 
+                                    new bool[] { true, true, true, true, true, true, true, true },
+                                    new bool[] { true, true, false } },
+                                new byte[][] { 
+                                    new byte[] { 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x53 }, 
+                                    new byte[] { 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x53 },
+                                    new byte[] { 0x20, 0x0D, 0x08 } },
+                                new bool[][] { 
+                                    new bool[] { false, false, false, false, false, false, false, false }, 
+                                    new bool[] { true, true, true, true, true, true, true, true },
+                                    new bool[] { false, false, false } });
                         }
-                        else if (FingersConfig == 18)
+                        else if (FingersConfig == 19)
                         {
-                            RadDigitButtonEvent(new string[][] { new string[] { "y", "z", "0", "1", "2", "3", "4", "5" } },
-                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x59, 0x5A, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35 } },
-                                new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });
-                        }
+                            RadDigitButtonEvent(
+                                new string[][] { 
+                                    new string[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" }, 
+                                    new string[] { ")", "!", "\"", "£", "$", "%", "^", "&", "*", "(" },
+                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" } },
+                                new bool[][] { 
+                                    new bool[] { true, true, true, true, true, true, true, true, true, true }, 
+                                    new bool[] { true, true, true, true, true, true, true, true, true, true },
+                                    new bool[] { true, true, false } },
+                                new byte[][] { 
+                                    new byte[] { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 }, 
+                                    new byte[] { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 },
+                                    new byte[] { 0x20, 0x0D, 0x08 } },
+                                new bool[][] { 
+                                    new bool[] { false, false, false, false, false, false, false, false, false, false }, 
+                                    new bool[] { true, true, true, true, true, true, true, true, true, true },
+                                    new bool[] { false, false, false } });
+                        }/*
                         else if (FingersConfig == 19)
                         {
                             RadDigitButtonEvent(new string[][] { new string[] { "6", "7", "8", "9", "-", "=", ",", "." } },
                                 new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },
                                 new byte[][] { new byte[] { 0x36, 0x37, 0x38, 0x39, 0xBD, 0xBB, 0xBC, 0xBE } },
                                 new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });
-                        }
+                        }*/
                         else if (FingersConfig == 30)
                         {
                             /*
@@ -443,10 +518,23 @@ class LeapListener
                                 new bool[][] { new bool[] { false, false, false, true, false, true, false, false } },
                                 new byte[][] { new byte[] { 0x08, 0x14, 0x10, 0x20, 0x11, 0X0D, 0x12, 0x2E } },
                                 new bool[][] { new bool[] { false, false, true, false, true, false, true, false } });*/
-                            RadDigitButtonEvent(new string[][] { new string[] { "_BACKSPACE", "_CAPS", "_SHIFT", "_SPACE", "_CTRL", "_RETURN", "_ALT", "_DELETE" } },
-                                new bool[][] { new bool[] { false, false, false, true, false, true, false, false } },
-                                new byte[][] { new byte[] { 0x08, 0x14, 0x10, 0x20, 0x11, 0X0D, 0x12, 0x2E } },
-                                new bool[][] { new bool[] { false, false, true, false, true, false, true, false } });
+                            RadDigitButtonEvent(
+                                new string[][] { 
+                                    new string[] { ".", "/", "]", "'", ";", "`", "[", "\\", "," },
+                                    new string[] { ">", "|", "}", "@", ":", "¬", "}", "?", "<" },
+                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" } },
+                                new bool[][] { 
+                                    new bool[] { true, true, true, true, true, true, true, true, true },
+                                    new bool[] { true, true, true, true, true, true, true, true, true },
+                                    new bool[] { true, true, false } },
+                                new byte[][] { 
+                                    new byte[] { 0xBE, 0xBF, 0xDD, 0xC0, 0xBA, 0xC0, 0xDB, 0xDC, 0xBC },
+                                    new byte[] { 0xBE, 0xBF, 0xDD, 0xC0, 0xBA, 0xC0, 0xDB, 0xDC, 0xBC },
+                                    new byte[] { 0x20, 0x0D, 0x08 } },
+                                new bool[][] { 
+                                    new bool[] { false, false, false, false, false, false, false, false, false },
+                                    new bool[] { true, true, true, true, true, true, true, true, true },
+                                    new bool[] { false, false, false } });
                         }
                     } 
                 }
