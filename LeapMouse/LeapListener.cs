@@ -14,6 +14,8 @@ class LeapListener
     public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
     [DllImport("user32.dll", SetLastError = true)]
     static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
+    [DllImport("USER32.dll")]
+    static extern short GetKeyState(int nVirtKey);
 
     private Object thisLock = new Object();
 
@@ -78,13 +80,32 @@ class LeapListener
         Console.WriteLine("  Failure message:" + args.ErrorMessage);
     }
 
-    public void PressVK(byte key)
+    public void PressVK(byte key, bool HoldKey)
     {
-        keybd_event(key, 0, 0, 0);
-        keybd_event(key, 0, 0x0002, 0);
+        byte bScan = 0;
+        if (!HoldKey)
+        {
+            keybd_event(key, bScan, 0x0001 | 0, 0);
+            keybd_event(key, bScan, 0x0001 | 0x0002, 0);
+        }
+        else
+        {
+            short keystate = GetKeyState(key);
+            //Console.WriteLine("\nKey State: {0}\n", keystate);
+            if (keystate == 0 || keystate == 1)
+            {
+                keybd_event(key, bScan, 0x0001 | 0, 0);
+                Console.WriteLine("_ON_");
+            }
+            else
+            {
+                keybd_event(key, bScan, 0x0001 | 0x0002, 0);
+                Console.WriteLine("_OFF_");
+            }
+        }
     }
 
-    public void LinDigitButtonEvent(string SymbolString, bool[] DeletePrevious, byte[] VKey)
+    public void LinDigitButtonEvent(string SymbolString, bool[] DeletePrevious, byte[] VKey, bool[] HoldKey)
     {
         double TravMinNew = 300 * TravMin;
         for (int f = 0; f < VKey.Length; f++)
@@ -95,8 +116,8 @@ class LeapListener
                 if (DigitButton != newDigitButton)
                 {
                     Console.Write(SymbolString[newDigitButton]);
-                    if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08); }
-                    PressVK(VKey[newDigitButton]);
+                    if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08, false); }
+                    PressVK(VKey[newDigitButton], HoldKey[newDigitButton]);
                     DigitButton = newDigitButton;
                 }
                 f = VKey.Length;
@@ -104,7 +125,7 @@ class LeapListener
         }
     }
 
-    public void RadDigitButtonEvent(string[][] SymbolString, bool[][] DeletePrevious, byte[][] VKey)
+    public void RadDigitButtonEvent(string[][] SymbolString, bool[][] DeletePrevious, byte[][] VKey, bool[][] HoldKey)
     {
         //Console.WriteLine("\nLength: {0}, [0]Length: {1}\n", VKey.Length, VKey[0].Length);
         double TravMinNew = 300 * TravMin;
@@ -136,9 +157,9 @@ class LeapListener
                         newDigitButton = f;
                         if (DigitButton != newDigitButton)
                         {
-                            //Console.Write(SymbolString[g][newDigitButton]);
-                            if (DigitButton != -10 && DeletePrevious[g][DigitButton]) { PressVK(0x08); }
-                            PressVK(VKey[g][newDigitButton]);
+                            Console.Write(SymbolString[g][newDigitButton]);
+                            if (DigitButton != -10 && DeletePrevious[g][DigitButton]) { PressVK(0x08, false); }
+                            PressVK(VKey[g][newDigitButton], HoldKey[g][newDigitButton]);
                             DigitButton = newDigitButton;
                             //Console.WriteLine("Angle: {0}\n", DigitAngle);
                         }
@@ -383,38 +404,49 @@ class LeapListener
                         {
                             RadDigitButtonEvent(new string[][] { new string[] { "a", "b", "c", "d", "e", "f", "g", "h"}},//, "i"}},//, "j", "k", "l", "m" } },
                                 new bool[][] { new bool[] { true, true, true, true, true, true, true, true}},//, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48}});//, 0x49 } });//, 0x4A, 0x4B, 0x4C, 0x4D } });
+                                new byte[][] { new byte[] { 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48}},
+                                new bool [][] {new bool[] { false, false, false, false, false, false, false, false }});//, 0x49 } });//, 0x4A, 0x4B, 0x4C, 0x4D } });
 
                         }
                         else if (FingersConfig == 6) 
                         {
                             RadDigitButtonEvent(new string[][] { new string[] { "i", "j", "k", "l", "m", "n", "o", "p"}},//, "q", "r" } },//, "s", "t", "u", "v", "w", "x", "y", "z" } },
                                 new bool[][] { new bool[] { true, true, true, true, true, true, true, true}},//, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50}});//, 0x51, 0x52 } });//, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A } });
+                                new byte[][] { new byte[] { 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50 } },
+                                new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });//, 0x51, 0x52 } });//, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A } });
                         }
                         else if (FingersConfig == 7) 
                         {
                             RadDigitButtonEvent(new string[][] { new string[] { "q", "r", "s", "t", "u", "v", "w", "x"}},//, "y", "z" } },
                                 new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58 } });//, 0x59, 0x5A } });
+                                new byte[][] { new byte[] { 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58 } },
+                                new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });//, 0x59, 0x5A } });
                         }
                         else if (FingersConfig == 18)
                         {
                             RadDigitButtonEvent(new string[][] { new string[] { "y", "z", "0", "1", "2", "3", "4", "5" } },
                                 new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },//, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x59, 0x5A, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35 } });
+                                new byte[][] { new byte[] { 0x59, 0x5A, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35 } },
+                                new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });
                         }
                         else if (FingersConfig == 19)
                         {
                             RadDigitButtonEvent(new string[][] { new string[] { "6", "7", "8", "9", "-", "=", ",", "." } },
                                 new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x36, 0x37, 0x38, 0x39, 0xBD, 0xBB, 0xBC, 0xBE } });
+                                new byte[][] { new byte[] { 0x36, 0x37, 0x38, 0x39, 0xBD, 0xBB, 0xBC, 0xBE } },
+                                new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });
                         }
                         else if (FingersConfig == 30)
                         {
-                            RadDigitButtonEvent(new string[][] { new string[] { "B", "C", ".", "_", ",", "N" } },
-                                new bool[][] { new bool[] { false, false, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x08, 0x14, 0xBE, 0x20, 0xBC, 0x0D } });
+                            /*
+                            RadDigitButtonEvent(new string[][] { new string[] { "_BACKSPACE", "_CAPS", "_SHIFT", "_SPACE", "_CTRL", "_RETURN", "_ALT", "_DELETE" } },
+                                new bool[][] { new bool[] { false, false, false, true, false, true, false, false } },
+                                new byte[][] { new byte[] { 0x08, 0x14, 0x10, 0x20, 0x11, 0X0D, 0x12, 0x2E } },
+                                new bool[][] { new bool[] { false, false, true, false, true, false, true, false } });*/
+                            RadDigitButtonEvent(new string[][] { new string[] { "_BACKSPACE", "_CAPS", "_SHIFT", "_SPACE", "_CTRL", "_RETURN", "_ALT", "_DELETE" } },
+                                new bool[][] { new bool[] { false, false, false, true, false, true, false, false } },
+                                new byte[][] { new byte[] { 0x08, 0x14, 0x10, 0x20, 0x11, 0X0D, 0x12, 0x2E } },
+                                new bool[][] { new bool[] { false, false, true, false, true, false, true, false } });
                         }
                     } 
                 }
