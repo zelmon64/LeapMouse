@@ -14,7 +14,7 @@ class LeapListener
     public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
     [DllImport("user32.dll", SetLastError = true)]
     static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
-    [DllImport("USER32.dll")]
+    [DllImport("user32.dll")]
     static extern short GetKeyState(int nVirtKey);
 
     private Object thisLock = new Object();
@@ -136,7 +136,7 @@ class LeapListener
     {
         //Console.WriteLine("\nLength: {0}, [0]Length: {1}\n", VKey.Length, VKey[0].Length);
         double TravMinNew = 300 * TravMin;
-        TravMinNew *= 1.5;
+        TravMinNew *= 3;
         double pi = 3.141592;
         double DigitAngle;
         //for (int g = 0; g < VKey.Length; g++)
@@ -374,7 +374,7 @@ class LeapListener
                 }
                 else if (KbOn)
                 {
-                    if (FingersConfig == 17 && prevFingersConfig == 19) //&& PalmDir.Roll < 1 && PalmDir.Roll > -1)
+                    if (FingersConfig == 2 && prevFingersConfig == 3) //&& PalmDir.Roll < 1 && PalmDir.Roll > -1)
                     {
                         KbOn = false;
                         Console.Write("Keyboard off \n");
@@ -386,42 +386,14 @@ class LeapListener
                             Console.Write("Pressed fingers: " + PressedFingers + ", Pressed fingers config: " + PressedFingersConfig + ", Digit Id: " + DigitID + "\n");
                         }
                         DigitTravel = Vector.Zero;
-                        DigitOrig = currentPalmPosition;
-                        //DigitOrig = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition);
+                        //DigitOrig = currentPalmPosition;
+                        DigitOrig = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition);
                         DigitButton[0] = -10;
                     }
                     if (FingersConfig == prevFingersConfig)
                     {
-                        /*
-                        double dPalmPitch = hand.Fingers[DigitID].StabilizedTipPosition.x - prevHand.Fingers[DigitID].StabilizedTipPosition.x;
-                        double dPalmYaw = hand.Fingers[DigitID].StabilizedTipPosition.y - prevHand.Fingers[DigitID].StabilizedTipPosition.y;
-                        double dPalmRoll = hand.Fingers[DigitID].StabilizedTipPosition.z - prevHand.Fingers[DigitID].StabilizedTipPosition.z;
-                        *
-                        double dPalmPitch = currentPalmPosition.x - prevPalmPosition.x;
-                        double dPalmYaw = currentPalmPosition.y - prevPalmPosition.y;
-                        double dPalmRoll = currentPalmPosition.z - prevPalmPosition.z;
-                        */
-                        //double TravMin = 0.1;
-
-                        //Vector dDigitPos = hand.Fingers[DigitID].StabilizedTipPosition - prevHand.Fingers[DigitID].StabilizedTipPosition;
-                        /*
-                        Vector dDigitPos = currentPalmPosition - prevPalmPosition;
-
-                        if (dDigitPos.Magnitude > TravMin)
-                        {
-                            DigitTravel += dDigitPos;
-                        }*/
-
-                        //int currDigitID;
-                        DigitTravel = currentPalmPosition - DigitOrig;
-                        //DigitTravel = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition) - DigitOrig;
-                        /*
-                        Leap.Finger.FingerType DigitType = prevHand.Fingers[prevDigitID].Type;
-                        //Leap.Finger.FingerType DigitType = hand.Fingers[currDigitID].Type;
-                        if (FingersConfig == 3)
-                        {
-                            DigitType = Leap.Finger.FingerType.TYPE_MIDDLE;
-                        }*/
+                        //DigitTravel = currentPalmPosition - DigitOrig;
+                        DigitTravel = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition) - DigitOrig;
                         
                         if(FingersConfig == 3)
                         {
@@ -442,7 +414,6 @@ class LeapListener
                                     new bool[] { false, false, false, false, false, false, false, false, false }, 
                                     new bool[] { true, true, true, true, true, true, true, true, true },
                                     new bool[] { false, false, false } });
-
                         }
                         else if (FingersConfig == 6) 
                         {
@@ -503,21 +474,9 @@ class LeapListener
                                     new bool[] { false, false, false, false, false, false, false, false, false, false }, 
                                     new bool[] { true, true, true, true, true, true, true, true, true, true },
                                     new bool[] { false, false, false } });
-                        }/*
-                        else if (FingersConfig == 19)
+                        }
+                        else if (FingersConfig == 18)
                         {
-                            RadDigitButtonEvent(new string[][] { new string[] { "6", "7", "8", "9", "-", "=", ",", "." } },
-                                new bool[][] { new bool[] { true, true, true, true, true, true, true, true } },
-                                new byte[][] { new byte[] { 0x36, 0x37, 0x38, 0x39, 0xBD, 0xBB, 0xBC, 0xBE } },
-                                new bool[][] { new bool[] { false, false, false, false, false, false, false, false } });
-                        }*/
-                        else if (FingersConfig == 30)
-                        {
-                            /*
-                            RadDigitButtonEvent(new string[][] { new string[] { "_BACKSPACE", "_CAPS", "_SHIFT", "_SPACE", "_CTRL", "_RETURN", "_ALT", "_DELETE" } },
-                                new bool[][] { new bool[] { false, false, false, true, false, true, false, false } },
-                                new byte[][] { new byte[] { 0x08, 0x14, 0x10, 0x20, 0x11, 0X0D, 0x12, 0x2E } },
-                                new bool[][] { new bool[] { false, false, true, false, true, false, true, false } });*/
                             RadDigitButtonEvent(
                                 new string[][] { 
                                     new string[] { ".", "/", "]", "'", ";", "`", "[", "\\", "," },
