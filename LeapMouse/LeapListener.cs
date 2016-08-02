@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using Leap;
@@ -7,17 +8,21 @@ using Leap;
 class LeapListener
 {
     [DllImport("user32.dll")]
-    private static extern bool SetCursorPos(int X, int Y);
-    [DllImport("user32.dll")]
     static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
     public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
-    [DllImport("user32.dll", SetLastError = true)]
-    static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
-    [DllImport("user32.dll")]
-    static extern short GetKeyState(int nVirtKey);
+    [DllImport("User32.dll")]
+    public static extern IntPtr GetDC(IntPtr hwnd);
+    [DllImport("User32.dll")]
+    public static extern void ReleaseDC(IntPtr hwnd, IntPtr dc);
 
     private Object thisLock = new Object();
+
+    private const int MOUSEEVENTF_ABSOLUTE = 0x8000;
+    private const int MOUSEEVENTF_MOVE = 0x0001;
+    private const int MOUSEEVENTF_LEFTDOWN = 0x0002;
+    private const int MOUSEEVENTF_LEFTUP = 0x0004;
+
 
     private void SafeWriteLine(String line)
     {
@@ -80,117 +85,17 @@ class LeapListener
         Console.WriteLine("  Failure message:" + args.ErrorMessage);
     }
 
-    //public void PressVK(byte key, bool HoldKey)
-    public void PressVK(byte key, bool ShiftKey)
-    {
-        byte bScan = 0;
-        //if (!HoldKey)
-        if (!ShiftKey)
-        {
-            keybd_event(key, bScan, 0x0001 | 0, 0);
-            keybd_event(key, bScan, 0x0001 | 0x0002, 0);
-        }
-        else
-        {
-            keybd_event(0x10, bScan, 0x0001 | 0, 0);
-            keybd_event(key, bScan, 0x0001 | 0, 0);
-            keybd_event(key, bScan, 0x0001 | 0x0002, 0);
-            keybd_event(0x10, bScan, 0x0001 | 0x0002, 0);
-            /*
-            short keystate = GetKeyState(key);
-            //Console.WriteLine("\nKey State: {0}\n", keystate);
-            if (keystate == 0 || keystate == 1)
-            {
-                keybd_event(key, bScan, 0x0001 | 0, 0);
-                Console.WriteLine("_ON_");
-            }
-            else
-            {
-                keybd_event(key, bScan, 0x0001 | 0x0002, 0);
-                Console.WriteLine("_OFF_");
-            }*/
-        }
-    }
-    /*
-    public void LinDigitButtonEvent(string SymbolString, bool[] DeletePrevious, byte[] VKey, bool[] HoldKey)
-    {
-        double TravMinNew = 300 * TravMin;
-        for (int f = 0; f < VKey.Length; f++)
-        {
-            if (DigitTravel.x < TravMinNew * (f + 1 - VKey.Length/2.0))
-            {
-                newDigitButton = f;
-                if (DigitButton != newDigitButton)
-                {
-                    Console.Write(SymbolString[newDigitButton]);
-                    if (DigitButton != -10 && DeletePrevious[DigitButton]) { PressVK(0x08, false); }
-                    PressVK(VKey[newDigitButton], HoldKey[newDigitButton]);
-                    DigitButton = newDigitButton;
-                }
-                f = VKey.Length;
-            }
-        }
-    }*/
-
-    public void RadDigitButtonEvent(string[][] SymbolString, bool[][] DeletePrevious, byte[][] VKey, bool[][] HoldKey)
-    {
-        //Console.WriteLine("\nLength: {0}, [0]Length: {1}\n", VKey.Length, VKey[0].Length);
-        double TravMinNew = 300 * TravMin;
-        TravMinNew *= 3;
-        double pi = 3.141592;
-        double DigitAngle;
-        //for (int g = 0; g < VKey.Length; g++)
-        for (int g = VKey.Length - 1; g >= 0; g--)
-        {
-            //Console.WriteLine("Magnitude: {0}, [0]Angle: {1}\n", DigitTravel.Magnitude, DigitAngle);
-            //Console.WriteLine("\nLength: {0}, [{2}]Length: {1}\n", VKey.Length, VKey[g].Length, g);
-            int vklength = VKey[g].Length;
-            //TravMinNew *= vklength/2.0;
-            //Console.WriteLine("Magnitude: {0}, [{2}]Length: {1}\n", DigitTravel.Magnitude, vklength, g);
-            if (DigitTravel.Magnitude > TravMinNew * (g + 0.5))
-            {
-                //int vklength = VKey[g].Length;
-                for (int f = 0; f < vklength; f++)
-                {
-                    if (DigitTravel.AngleTo(Vector.XAxis)<pi/2.0) 
-                    {
-                        DigitAngle = DigitTravel.AngleTo(Vector.YAxis);
-                    }
-                    else
-                    {
-                        //DigitAngle = -DigitTravel.AngleTo(Vector.YAxis);
-                        DigitAngle = 2*pi-DigitTravel.AngleTo(Vector.YAxis);
-                    }
-                    //Console.WriteLine("Magnitude: {0}, [0]Angle: {1}\n", DigitTravel.Magnitude, DigitAngle);
-                    //Console.WriteLine("Angle: {0}\n", DigitAngle);
-                    //if (DigitAngle < 2 * pi / VKey[g].Length * (f + 1 - VKey[g].Length / 2.0))
-                    if (DigitAngle < 2 * pi / VKey[g].Length * (f + 1))
-                    {
-                        //newDigitButton f;
-                        //newDigitButton = new Int32[] {g, f};
-                        //newDigitButton[0] = g;
-                        //newDigitButton[1] = f;
-                        //if (DigitButton != newDigitButton)
-                        if (DigitButton[0] != g || DigitButton[1] != f)
-                        {
-                            Console.Write(SymbolString[g][f]);
-                            /*if (DigitButton != -10 && DeletePrevious[g][DigitButton]) { PressVK(0x08, false); }
-                            PressVK(VKey[g][newDigitButton], HoldKey[g][newDigitButton]);
-                            DigitButton = newDigitButton;
-                             */
-                            if (DigitButton[0] != -10 && DeletePrevious[DigitButton[0]][DigitButton[1]]) { PressVK(0x08, false); }
-                            PressVK(VKey[g][f], HoldKey[g][f]);
-                            DigitButton = new Int32[2] {g, f};
-                            //Console.WriteLine("Angle: {0}\n", DigitAngle);
-                        }
-                        f = vklength;
-                        //g = VKey.Length;
-                        g = -1;
-                    }
-                }
-            }
-        }
-    }
+    private Int64 prevTime;
+    private Int64 currentTime;
+    private Int64 changeTime;
+    private Frame currentFrame;
+    private Frame prevFrame;
+    private float currentZ;
+    private float previousZ;
+    //private bool currentThumb;
+    //private bool previousThumb;
+    private bool mouseDown;
+    private int drawSkip;
 
     public void OnLogMessage(object sender, LogEventArgs args)
     {
@@ -212,410 +117,120 @@ class LeapListener
         Console.WriteLine("[{0}] {1}", args.timestamp, args.message);
     }
 
-    public Int64 prevTime;
-    public Int64 currentTime;
-    public Int64 changeTime;
-    public Frame currentFrame;
-    public Frame prevFrame;
-    public Vector DigitTravel;
-    public Vector DigitOrig;
-    //public Int32 DigitButton;
-    //public Int32 newDigitButton;
-    public Int32[] DigitButton = new Int32[2];
-    //public Int32[] newDigitButton;
-    public double TravMin = 0.0002;
-    //public override void OnFrame(Controller controller)
     public void OnFrame(object sender, FrameEventArgs args)
     {
         prevFrame = currentFrame;
         currentFrame = args.frame;
+        //int appWidth = Screen.PrimaryScreen.WorkingArea.Width;
+        //int appHeight = Screen.PrimaryScreen.WorkingArea.Height;
+
+        InteractionBox iBox = currentFrame.InteractionBox;
+        //if (currentFrame.Hands.Count > 0)
         currentTime = currentFrame.Timestamp;
         changeTime = currentTime - prevTime;
         /*
         Console.WriteLine("Frame id: {0}, timestamp: {1}, hands: {2}, changeTime: {3}",
             currentFrame.Id, currentFrame.Timestamp, currentFrame.Hands.Count, changeTime);
         */
-        if (changeTime > 500 && currentFrame.Hands.Count > 0 && prevFrame.Hands.Count > 0)
+        if (currentFrame.Hands.Count > 0) // && prevFrame.Hands.Count > 0)
         {
             Hand hand = currentFrame.Hands[0];
-            Hand prevHand = prevFrame.Hands[0];
-            Vector currentPalmPosition = hand.StabilizedPalmPosition;
-            Vector prevPalmPosition = prevHand.StabilizedPalmPosition;
-            Vector PalmDir = hand.PalmNormal;
-            InteractionBox interactionBox = currentFrame.InteractionBox;
-            //Vector normalizedHandPosition = interactionBox.NormalizePoint(hand.PalmPosition);
-            currentPalmPosition = interactionBox.NormalizePoint(hand.StabilizedPalmPosition);
-            prevPalmPosition = interactionBox.NormalizePoint(prevHand.StabilizedPalmPosition);
-            int prevExtendedFingers = 0;
-            int ExtendedFingers = 0;
-            int FingersConfig = 0;
-            int prevFingersConfig = 0;
-            int FingersMult;
-            int PressedFingers = 0;
-            int PressedFingersConfig = 0;
-            int prevPressedFingers = 0;
-            int prevPressedFingersConfig = 0;
-            double pressedmin = 0.025;
-            //pressedmin = 0.05;
-            double pitchmax = -1.2;
-            int DigitID = 0;
-            int prevDigitID = 0;
-            int eDigitID = 0;
-            int preveDigitID = 0;
-            //Console.Write("HandID: " + hand.Id + ", Confidence:" + (hand.Confidence * 10.0) + ", Time visible: " + (int)hand.TimeVisible/1000000 + "\n");
-            
-            for (int f = 0; f < hand.Fingers.Count; f++)
+            Finger finger = hand.Fingers[1];
+
+            Leap.Vector leapPoint = finger.TipPosition; //.StabilizedTipPosition; //
+            Leap.Vector normalizedPoint = iBox.NormalizePoint(leapPoint, false);
+            currentZ = normalizedPoint.z;
+
+            if (changeTime > 3e3 & currentZ < 1.2) // & currentZ > 0.3
             {
-                Finger digit = hand.Fingers[f];
-                Finger prevdigit = prevHand.Fingers[f];
+                drawSkip++;
 
-                if (digit.IsExtended)
-                {
-                    ExtendedFingers++;
-                    FingersMult = 1;
-                    for (int m = 0; m < digit.Id - hand.Id * 10; m++)
-                    {
-                        FingersMult *= 2;
-                    }
-                    FingersConfig += FingersMult;
-                }
-                else { eDigitID = f; }
-                
-                if (prevdigit.IsExtended)
-                {
-                    prevExtendedFingers++;
-                    FingersMult = 1;
-                    for (int m = 0; m < digit.Id - hand.Id * 10; m++)
-                    {
-                        FingersMult *= 2;
-                    }
-                    prevFingersConfig += FingersMult;
-                }
-                else { preveDigitID = f; }
+                //currentThumb = hand.Fingers[0].IsExtended;
 
-                Vector transformedFingerPosition = interactionBox.NormalizePoint(digit.StabilizedTipPosition);
-                if (transformedFingerPosition.y < currentPalmPosition.y - pressedmin)
+                float CursorXPos = normalizedPoint.x; // * 65535; // appWidth;
+                float CursorYPos = (1 - normalizedPoint.y); // * 65535; // appHeight;
+                int CursorXPosMouse = (int)(CursorXPos * 65535);
+                int CursorYPosMouse = (int)(CursorYPos * 65535);
+                int CursorXPosScreen = (int)(CursorXPos * 1920); // Screen.PrimaryScreen.WorkingArea.Width);
+                int CursorYPosScreen = (int)(CursorYPos * 1080); // Screen.PrimaryScreen.WorkingArea.Height);
+
+                // Move the mouse.
+                //SetCursorPos((int)CursorXPos, (int)CursorYPos);
+                mouse_event(
+                    (MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE),
+                    CursorXPosMouse, CursorYPosMouse, 0, 0);
+
+                if (drawSkip > 10)
                 {
-                    PressedFingers++;
-                    FingersMult = 1;
-                    for (int m = 0; m < digit.Id - hand.Id * 10; m++)
+                    drawSkip = 1;
+                    //Point pt = Cursor.Position; // Get the mouse cursor in screen coordinates
+                    /*
+                    using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
                     {
-                        FingersMult *= 2;
+                        g.DrawEllipse(Pens.Black, CursorXPos - 10, CursorYPos - 10, 20, 20);
                     }
-                    PressedFingersConfig += FingersMult;
-                    DigitID = f;
+                    */
+                    IntPtr desktopPtr = GetDC(IntPtr.Zero);
+                    Graphics g = Graphics.FromHdc(desktopPtr);
+
+                    //SolidBrush b = new SolidBrush(Color.Black);
+                    // Create pen.
+                    Pen blackPen = new Pen(Color.Black, 5);
+                    Pen redPen = new Pen(Color.Red, 5);
+                    //g.FillRectangle(b, new Rectangle(0, 0, 1920, 1080));
+                    g.DrawRectangle(Pens.Transparent, new Rectangle(0, 0, 1920, 1080));
+                    //g.FillEllipse(b, new Rectangle(CursorXPosScreen - 10, CursorYPosScreen - 10, CursorXPosScreen + 10, CursorYPosScreen + 10));
+                    //g.DrawEllipse(Pens.Black, new Rectangle(CursorXPosScreen - 10, CursorYPosScreen - 10, 20, 20));
+                    int sizeMult = 100;
+                    if (currentZ > 0.5)
+                        g.DrawEllipse(blackPen, new Rectangle(CursorXPosScreen - (int)(sizeMult * (currentZ - 0.5)), CursorYPosScreen - (int)(sizeMult * (currentZ - 0.5)), (int)(2 * sizeMult * (currentZ - 0.5)), (int)(2 * sizeMult * (currentZ - 0.5))));
+                    //g.FillEllipse(b, new Rectangle(CursorXPosScreen - (int)(sizeMult * (currentZ - 0.5)), CursorYPosScreen - (int)(sizeMult * (currentZ - 0.5)), (int)(2 * sizeMult * (currentZ - 0.5)), (int)(2 * sizeMult * (currentZ - 0.5))));
+                    else
+                        g.DrawEllipse(redPen, new Rectangle(CursorXPosScreen - (int)(sizeMult * (0.5 - currentZ)), CursorYPosScreen - (int)(sizeMult * (0.5 - currentZ)), (int)(2 * sizeMult * (0.5 - currentZ)), (int)(2 * sizeMult * (0.5 - currentZ))));
+
+                    g.Dispose();
+                    ReleaseDC(IntPtr.Zero, desktopPtr);
                 }
 
-                Vector prevtransformedFingerPosition = interactionBox.NormalizePoint(prevdigit.StabilizedTipPosition);
-                if (prevtransformedFingerPosition.y < currentPalmPosition.y - pressedmin)
+                // Left click
+                //if (!previousThumb & currentThumb)
+                if (previousZ > 0.5 & currentZ < 0.5)
                 {
-                    prevPressedFingers++;
-                    FingersMult = 1;
-                    for (int m = 0; m < prevdigit.Id - hand.Id * 10; m++)
-                    {
-                        FingersMult *= 2;
-                    }
-                    prevPressedFingersConfig += FingersMult;
-                    prevDigitID = f;
+                    mouse_event(MOUSEEVENTF_LEFTDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                    mouseDown = true;
                 }
+                //if (previousThumb & !currentThumb)
+                if (previousZ < 0.5 & currentZ > 0.5)
+                {
+                    mouse_event(MOUSEEVENTF_LEFTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                    mouseDown = false;
+                }
+
+                //mouse_event(0x8000, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                //mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0001, 0);
+                //mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0002, 0);
+                //The z-coordinate is not used
+                //Console.Write("X: " + CursorXPos + ", Y: " + CursorYPos + "\n");
+                //Console.Write("X: " + normalizedPoint.x + ", Y: " + normalizedPoint.y + "\n");
+                //Console.Write("X: " + normalizedPoint.x + ", Y: " + normalizedPoint.y + ", Z: " + normalizedPoint.z + "\n");
+                //Console.Write("X: " + leapPoint.x + ", Y: " + leapPoint.y + "\n");
+
+                previousZ = currentZ;
+                prevTime = currentTime;
+                //previousThumb = currentThumb;
             }
-            
-            float PalmPosX = currentPalmPosition.x;
-            float PalmPosY = currentPalmPosition.y;
-            float prePalmPosX = prevPalmPosition.x;
-            float prePalmPosY = prevPalmPosition.y;
-            double changePalmPosX = PalmPosX - prePalmPosX;
-            double changePalmPosY = PalmPosY - prePalmPosY;
-            int changemax = 100;
-            //double scalingFactor = 15000;
-            double mouseLinearScaling = 15000;
-            double mousePowerScaling = 1;
-            double mouseDirX = 1;
-            double mouseDirY = 1;
-            /*
-            double TravMin = 0.1;
-            TravMin = 0.0002;
-            /*
-            FingersConfig = 31 - PressedFingersConfig;
-            prevFingersConfig = 31 - prevPressedFingersConfig;
-            */
-            PressedFingers = 5 - ExtendedFingers;
-            prevPressedFingers = 5 - prevExtendedFingers;
-            PressedFingersConfig = 31 - FingersConfig;
-            prevPressedFingersConfig = 31 - prevFingersConfig;
-            /*
-            DigitID = eDigitID;
-            prevDigitID = preveDigitID;
-            */
-
-            if (currentPalmPosition.z < 0.999 && currentPalmPosition.z > 0.001)// && hand.IsRight && prevHand.IsRight)
-            {
-                if (!MouseOn && !KbOn)
-                {
-                    //Console.Write(".");
-                    if (FingersConfig != prevFingersConfig || PressedFingersConfig != prevPressedFingersConfig)
-                    {
-                        Console.Write("\nExtended finger configuration: " + FingersConfig + ", Pressed finger configuration: " + PressedFingersConfig + "\n");
-                    }
-                    //if (FingersConfig == 31 && prevFingersConfig == 3)
-                    if (FingersConfig == 7 && prevFingersConfig == 3)
-                    {
-                        MouseOn = true;
-                        CursorXPos = 1000;
-                        CursorYPos = 500;
-                        Console.Write("Mouse on \n");
-                    }
-                    else if (FingersConfig == 6 && prevFingersConfig == 2)
-                    {
-                        KbOn = true;
-                        Console.Write("Keyboard on \n");
-                        DigitTravel = Vector.Zero;
-                    }
-                }
-                else if (KbOn)
-                {
-                    if (FingersConfig == 2 && prevFingersConfig == 3) //&& PalmDir.Roll < 1 && PalmDir.Roll > -1)
-                    {
-                        KbOn = false;
-                        Console.Write("Keyboard off \n");
-                    }
-                    if (PressedFingers != prevPressedFingers)
-                    {
-                        if (PressedFingers > 3 && prevPressedFingersConfig > 3)//(hand.Fingers[DigitID].Type != Finger.FingerType.TYPE_INDEX || prevHand.Fingers[prevDigitID].Type != Finger.FingerType.TYPE_INDEX)
-                        {
-                            Console.Write("Pressed fingers: " + PressedFingers + ", Pressed fingers config: " + PressedFingersConfig + ", Digit Id: " + DigitID + "\n");
-                        }
-                        DigitTravel = Vector.Zero;
-                        //DigitOrig = currentPalmPosition;
-                        DigitOrig = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition);
-                        DigitButton[0] = -10;
-                    }
-                    if (FingersConfig == prevFingersConfig)
-                    {
-                        //DigitTravel = currentPalmPosition - DigitOrig;
-                        DigitTravel = interactionBox.NormalizePoint(hand.Fingers[1].StabilizedTipPosition) - DigitOrig;
-                        
-                        if(FingersConfig == 3)
-                        {
-                            RadDigitButtonEvent(
-                                new string[][] { 
-                                    new string[] { "b", "c", "d", "e", "f", "g", "h", "i", "a" }, 
-                                    new string[] { "B", "C", "D", "E", "F", "G", "H", "I", "A" },
-                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" }},
-                                new bool[][] { 
-                                    new bool[] { true, true, true, true, true, true, true, true, true }, 
-                                    new bool[] { true, true, true, true, true, true, true, true, true },
-                                    new bool[] { true, true, false } },
-                                new byte[][] { 
-                                    new byte[] { 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x41 }, 
-                                    new byte[] { 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x41 },
-                                    new byte[] { 0x20, 0x0D, 0x08 } },
-                                new bool[][] { 
-                                    new bool[] { false, false, false, false, false, false, false, false, false }, 
-                                    new bool[] { true, true, true, true, true, true, true, true, true },
-                                    new bool[] { false, false, false } });
-                        }
-                        else if (FingersConfig == 6) 
-                        {
-                            RadDigitButtonEvent(
-                                new string[][] { 
-                                    new string[] { "k", "l", "m", "n", "o", "p", "q", "r", "j" }, 
-                                    new string[] { "K", "L", "M", "N", "O", "P", "Q", "R", "J" },
-                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" } },
-                                new bool[][] { 
-                                    new bool[] { true, true, true, true, true, true, true, true, true }, 
-                                    new bool[] { true, true, true, true, true, true, true, true, true },
-                                    new bool[] { true, true, false } },
-                                new byte[][] { 
-                                    new byte[] { 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x4A },
-                                    new byte[] { 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x4A },
-                                    new byte[] { 0x20, 0x0D, 0x08 } },
-                                new bool[][] { 
-                                    new bool[] { false, false, false, false, false, false, false, false, false }, 
-                                    new bool[] { true, true, true, true, true, true, true, true, true },
-                                    new bool[] { false, false, false } });
-                        }
-                        else if (FingersConfig == 7) 
-                        {
-                            RadDigitButtonEvent(
-                                new string[][] { 
-                                    new string[] { "t", "u", "v", "w", "x", "y", "z", "s" }, 
-                                    new string[] { "T", "U", "V", "W", "X", "Y", "Z", "S" },
-                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" } },
-                                new bool[][] { 
-                                    new bool[] { true, true, true, true, true, true, true, true }, 
-                                    new bool[] { true, true, true, true, true, true, true, true },
-                                    new bool[] { true, true, false } },
-                                new byte[][] { 
-                                    new byte[] { 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x53 }, 
-                                    new byte[] { 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x53 },
-                                    new byte[] { 0x20, 0x0D, 0x08 } },
-                                new bool[][] { 
-                                    new bool[] { false, false, false, false, false, false, false, false }, 
-                                    new bool[] { true, true, true, true, true, true, true, true },
-                                    new bool[] { false, false, false } });
-                        }
-                        else if (FingersConfig == 19)
-                        {
-                            RadDigitButtonEvent(
-                                new string[][] { 
-                                    new string[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" }, 
-                                    new string[] { ")", "!", "\"", "£", "$", "%", "^", "&", "*", "(" },
-                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" } },
-                                new bool[][] { 
-                                    new bool[] { true, true, true, true, true, true, true, true, true, true }, 
-                                    new bool[] { true, true, true, true, true, true, true, true, true, true },
-                                    new bool[] { true, true, false } },
-                                new byte[][] { 
-                                    new byte[] { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 }, 
-                                    new byte[] { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 },
-                                    new byte[] { 0x20, 0x0D, 0x08 } },
-                                new bool[][] { 
-                                    new bool[] { false, false, false, false, false, false, false, false, false, false }, 
-                                    new bool[] { true, true, true, true, true, true, true, true, true, true },
-                                    new bool[] { false, false, false } });
-                        }
-                        else if (FingersConfig == 18)
-                        {
-                            RadDigitButtonEvent(
-                                new string[][] { 
-                                    new string[] { ".", "/", "]", "'", ";", "`", "[", "\\", "," },
-                                    new string[] { ">", "|", "}", "@", ":", "¬", "}", "?", "<" },
-                                    new string[] { "_SPACE", "_RETURN", "_BACKSPACE" } },
-                                new bool[][] { 
-                                    new bool[] { true, true, true, true, true, true, true, true, true },
-                                    new bool[] { true, true, true, true, true, true, true, true, true },
-                                    new bool[] { true, true, false } },
-                                new byte[][] { 
-                                    new byte[] { 0xBE, 0xBF, 0xDD, 0xC0, 0xBA, 0xC0, 0xDB, 0xDC, 0xBC },
-                                    new byte[] { 0xBE, 0xBF, 0xDD, 0xC0, 0xBA, 0xC0, 0xDB, 0xDC, 0xBC },
-                                    new byte[] { 0x20, 0x0D, 0x08 } },
-                                new bool[][] { 
-                                    new bool[] { false, false, false, false, false, false, false, false, false },
-                                    new bool[] { true, true, true, true, true, true, true, true, true },
-                                    new bool[] { false, false, false } });
-                        }
-                    } 
-                }
-                else if (MouseOn)
-                {
-                    if (FingersConfig == 1 && prevFingersConfig == 3 && PalmDir.Roll < 1 && PalmDir.Roll > -1)
-                    {
-                        MouseOn = false;
-                        Console.Write("Mouse off \n");
-                        mouse_event(0x0004, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                        //mouse_event(0x0010, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                        mouse_event(0x0040, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                        mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0001, 0);
-                        mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0002, 0);                       
-                    }
-                    else if (ExtendedFingers > 3 && ExtendedFingers == prevExtendedFingers)
-                    {
-                        if (changePalmPosX < changemax && changePalmPosY < changemax && PalmDir.Roll < 1 && PalmDir.Roll > -1 && PalmDir.Pitch < pitchmax)
-                        {
-                            changePalmPosX *= mouseLinearScaling;
-                            changePalmPosY *= mouseLinearScaling;
-                            for (int m = 1; m < mousePowerScaling; m++)
-                            {
-                                if (changePalmPosX < 0)
-                                {
-                                    mouseDirX = -1;
-                                }
-                                if (changePalmPosY < 0)
-                                {
-                                    mouseDirY = -1;
-                                }
-                                changePalmPosX *= changePalmPosX;
-                                changePalmPosY *= changePalmPosY;
-                            }
-                            CursorXPos = CursorXPos + (int)(changePalmPosX * mouseDirX);
-                            CursorYPos = CursorYPos - (int)(changePalmPosY * mouseDirY);
-                        }
-                        else if (ExtendedFingers == 5 && (PalmDir.Roll > 2 || PalmDir.Roll < -2))
-                        {
-                            CursorXPos = 1000;
-                            CursorYPos = 500;
-                            mouse_event(0x0004, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                            //mouse_event(0x0010, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                            mouse_event(0x0040, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                            mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0001, 0);
-                            mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0002, 0);
-                        }
-                        SetCursorPos((int)CursorXPos, (int)CursorYPos);
-                    }
-                    else if (ExtendedFingers == 4 && prevExtendedFingers == 5 && PalmDir.Pitch < pitchmax)
-                    {
-                        if (FingersConfig == 29)
-                        {
-                            mouse_event(0x0002, 0, (int)CursorXPos, (int)CursorYPos, 0);
-                            Console.Write("Left down\n");
-                        }
-                        if (FingersConfig == 27)
-                        {
-                            mouse_event(0x0008, 0, (int)CursorXPos, (int)CursorYPos, 0);
-                            Console.Write("Right down\n");
-                        }
-                        if (FingersConfig == 30)
-                        {
-                            mouse_event(0x0020, 0, (int)CursorXPos, (int)CursorYPos, 0);
-                            Console.Write("Middle down\n");
-                        }
-                        if (FingersConfig == 23)
-                        {
-                            mouse_event(0x0080, (int)CursorXPos, (int)CursorYPos, 0x0001, 0);
-                            Console.Write("4 down\n");
-                        }
-                        if (FingersConfig == 15)
-                        {
-                            mouse_event(0x0080, (int)CursorXPos, (int)CursorYPos, 0x0002, 0);
-                            Console.Write("5 down\n");
-                        }
-                    }
-                    else if (ExtendedFingers == 5 && prevExtendedFingers == 4)
-                    {
-                        if (prevFingersConfig == 29)
-                        {
-                            Console.Write("Left up\n");
-                            mouse_event(0x0004, 0, (int)CursorXPos, (int)CursorYPos, 0);
-                        }
-                        if (prevFingersConfig == 27)
-                        {
-                            mouse_event(0x0010, 0, (int)CursorXPos, (int)CursorYPos, 0);
-                            Console.Write("Right up\n");
-                        }
-                        if (prevFingersConfig == 30)
-                        {
-                            mouse_event(0x0040, 0, (int)CursorXPos, (int)CursorYPos, 0);
-                            Console.Write("Middle up\n");
-                        }
-                        if (prevFingersConfig == 23)
-                        {
-                            mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0001, 0);
-                            Console.Write("4 up\n");
-                        }
-                        if (prevFingersConfig == 15)
-                        {
-                            mouse_event(0x0100, (int)CursorXPos, (int)CursorYPos, 0x0002, 0);
-                            Console.Write("5 up\n");
-                        }
-                    }
-                    if (FingersConfig != prevFingersConfig || PressedFingersConfig != prevPressedFingersConfig)
-                    {
-                        Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Pitch + ", Fingers: " + FingersConfig + "\n");
-                    }
-                    //Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Pitch + ", Fingers: " + FingersConfig + "\n");
-                    //Console.Write("PalmZ: " + currentPalmPosition.z + ", PalmNorm: " + PalmDir.Roll + "\n");
-                }
-            }
-            prevTime = currentTime;
         }
         else
         {
-            if (!MouseOn && !KbOn)
+            //Console.Write("No hands found\n");
+            if (mouseDown)
             {
-                Console.Write(".");
+                mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                mouseDown = false;
             }
+            currentZ = 1;
+            previousZ = 1;
+            //currentThumb = false;
         }
     }
 }
-
