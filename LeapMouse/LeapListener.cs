@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Windows.Forms;
@@ -22,7 +23,14 @@ class LeapListener
     private const int MOUSEEVENTF_MOVE = 0x0001;
     private const int MOUSEEVENTF_LEFTDOWN = 0x0002;
     private const int MOUSEEVENTF_LEFTUP = 0x0004;
-
+    private const int MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+    private const int MOUSEEVENTF_MIDDLEUP = 0x0040;
+    private const int MOUSEEVENTF_RIGHTDOWN = 0x0008;
+    private const int MOUSEEVENTF_RIGHTUP = 0x0010;
+    private const int MOUSEEVENTF_XDOWN = 0x0080;
+    private const int MOUSEEVENTF_XUP = 0x0100;
+    private const int XBUTTON1 = 0x0001;
+    private const int XBUTTON2 = 0x0002;
 
     private void SafeWriteLine(String line)
     {
@@ -86,6 +94,8 @@ class LeapListener
     private float previousZ;
     //private bool currentThumb;
     //private bool previousThumb;
+    private float CursorXPos;
+    private float CursorYPos;
     private bool mouseDown;
     private int drawSkip;
 
@@ -123,30 +133,182 @@ class LeapListener
             if (currentFrame.Hands.Count > 0) // && prevFrame.Hands.Count > 0)
             {
                 Hand hand = currentFrame.Hands[0];
-                Finger finger = hand.Fingers[1];
+                List<bool> activeFingerList = new List<bool>();
+                int activeFingerCount = 0;
 
-                Leap.Vector leapPoint = finger.TipPosition; //.StabilizedTipPosition; //
-                Leap.Vector normalizedPoint = iBox.NormalizePoint(leapPoint, false);
-                currentZ = normalizedPoint.z;
+                foreach (Finger finger in hand.Fingers)
+                {
+                    if (finger.IsExtended)
+                    {
+                        activeFingerCount++;
+                        activeFingerList.Add(true);
+                    }
+                    else
+                        activeFingerList.Add(false);
+                }
+
+                Leap.Vector leapPoint;
+                Leap.Vector normalizedPoint;
+                if (activeFingerList[1])
+                {
+                    Finger indexFinger = hand.Fingers[1];
+
+                    leapPoint = indexFinger.TipPosition; //.StabilizedTipPosition; //
+                    normalizedPoint = iBox.NormalizePoint(leapPoint, false);
+                    currentZ = normalizedPoint.z;
+
+                    if (currentZ < 1.5)
+                    {
+                        CursorXPos = normalizedPoint.x; // * 65535; // appWidth;
+                        CursorYPos = (1 - normalizedPoint.y); // * 65535; // appHeight;
+                        int CursorXPosMouse = (int)(CursorXPos * 65535);
+                        int CursorYPosMouse = (int)(CursorYPos * 65535);
+                        int CursorXPosScreen = (int)(CursorXPos * 1920); // Screen.PrimaryScreen.WorkingArea.Width);
+                        int CursorYPosScreen = (int)(CursorYPos * 1080); // Screen.PrimaryScreen.WorkingArea.Height);
+
+                        // Move the mouse.
+                        //SetCursorPos((int)CursorXPos, (int)CursorYPos);
+                        mouse_event(
+                            (MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE),
+                            CursorXPosMouse, CursorYPosMouse, 0, 0);
+
+                        if (activeFingerCount == 1)
+                        {
+                            // Left click drag
+                            if (previousZ > 0.5 & currentZ < 0.5)
+                            {
+                                mouse_event(MOUSEEVENTF_LEFTDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                mouseDown = true;
+                            }
+                            if (previousZ < 0.5 & currentZ > 0.5)
+                            {
+                                mouse_event(MOUSEEVENTF_LEFTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                mouseDown = false;
+                            }
+                        }
+                        else if (activeFingerList[0])
+                        {
+                            if (activeFingerCount == 2)
+                            {
+                                // Left single click
+                                if (previousZ > 0.5 & currentZ < 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                }
+                            }
+                            else if (activeFingerCount == 3)
+                            {
+                                // Right single click
+                                if (activeFingerList[2] && previousZ > 0.5 & currentZ < 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                }
+                                // X2 single click
+                                if (activeFingerList[4] && previousZ > 0.5 & currentZ < 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_XDOWN | MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON2, 0);
+                                }
+                            }
+                            else if (activeFingerCount == 4)
+                            {
+                                if (activeFingerList[2] && activeFingerList[3])
+                                {
+                                    // Middle click
+                                    if (previousZ > 0.5 & currentZ < 0.5)
+                                    {
+                                        mouse_event(MOUSEEVENTF_MIDDLEDOWN | MOUSEEVENTF_MIDDLEUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                    }
+                                }
+                            }
+                            else if (activeFingerCount == 5)
+                            {
+                                //if (activeFingerList[2] && activeFingerList[3])
+                                {
+                                    // X1 click
+                                    if (previousZ > 0.5 & currentZ < 0.5)
+                                    {
+                                        mouse_event(MOUSEEVENTF_XDOWN | MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON1, 0);
+                                    }
+                                }
+                            }
+                        }
+                        else if (activeFingerCount == 2)
+                        {
+                            if (activeFingerList[2])
+                            {
+                                // Right drag
+                                if (previousZ > 0.5 & currentZ < 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_RIGHTDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                    mouseDown = true;
+                                }
+                                if (previousZ < 0.5 & currentZ > 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_RIGHTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                    mouseDown = false;
+                                }
+                            }
+                            else if (activeFingerList[4])
+                            {
+                                // X2 drag
+                                if (previousZ > 0.5 & currentZ < 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_XDOWN, (int)CursorXPos, (int)CursorYPos, XBUTTON2, 0);
+                                    mouseDown = true;
+                                }
+                                if (previousZ < 0.5 & currentZ > 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON2, 0);
+                                    mouseDown = false;
+                                }
+                            }
+                        }
+                        else if (activeFingerCount == 3)
+                        {
+                            //if (activeFingerList[2] && activeFingerList[3])
+                            {
+                                // Middle drag
+                                if (previousZ > 0.5 & currentZ < 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_MIDDLEDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                    mouseDown = true;
+                                }
+                                if (previousZ < 0.5 & currentZ > 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_MIDDLEUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                    mouseDown = false;
+                                }
+                            }
+                        }
+                        else if (activeFingerCount == 4)
+                        {
+                            //if (activeFingerList[2] && activeFingerList[3])
+                            {
+                                // X1 drag
+                                if (previousZ > 0.5 & currentZ < 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_XDOWN, (int)CursorXPos, (int)CursorYPos, XBUTTON1, 0);
+                                    mouseDown = true;
+                                }
+                                if (previousZ < 0.5 & currentZ > 0.5)
+                                {
+                                    mouse_event(MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON1, 0);
+                                    mouseDown = false;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    currentZ = 2;
+                }
+
+                
 
                 if (currentZ < 1.5) // & currentZ > 0.3
                 {
                     drawSkip++;
-
-                    //currentThumb = hand.Fingers[0].IsExtended;
-
-                    float CursorXPos = normalizedPoint.x; // * 65535; // appWidth;
-                    float CursorYPos = (1 - normalizedPoint.y); // * 65535; // appHeight;
-                    int CursorXPosMouse = (int)(CursorXPos * 65535);
-                    int CursorYPosMouse = (int)(CursorYPos * 65535);
-                    int CursorXPosScreen = (int)(CursorXPos * 1920); // Screen.PrimaryScreen.WorkingArea.Width);
-                    int CursorYPosScreen = (int)(CursorYPos * 1080); // Screen.PrimaryScreen.WorkingArea.Height);
-
-                    // Move the mouse.
-                    //SetCursorPos((int)CursorXPos, (int)CursorYPos);
-                    mouse_event(
-                        (MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE),
-                        CursorXPosMouse, CursorYPosMouse, 0, 0);
 
                     if (drawSkip > 3) // & currentZ < 1 & currentZ > 0) //(false) //
                     {
@@ -170,12 +332,10 @@ class LeapListener
                             sweepAng = (float)(angMult * 2 * (currentZ - 0.5));
                             startAng = 270 - sweepAng;
                             if (sweepAng != angMult)
-                                try
-                                {
+                                try {
                                     g.DrawArc(arcPen, arcRet, 270 - angMult, angMult - sweepAng);
                                 }
-                                catch (Exception e)
-                                {
+                                catch (Exception e) {
                                     Console.WriteLine("Draw Error in frame: " + currentFrame + ":\n"+ e);
                                 }
                             g.DrawArc(arcPen, arcRet, 270, angMult);
@@ -187,12 +347,10 @@ class LeapListener
                             startAng = 270;
                             sweepAng = (float)(angMult * 2 * (0.5 - currentZ));
                             if (sweepAng != angMult)
-                                try
-                                {
+                                try {
                                     g.DrawArc(arcPen, arcRet, angMult - 90, sweepAng - angMult);
                                 }
-                                catch (Exception e)
-                                {
+                                catch (Exception e) {
                                     Console.WriteLine("Draw Error in frame: " + currentFrame + ":\n" + e);
                                 }
                             g.DrawArc(arcPen, arcRet, 270, -angMult);
@@ -200,47 +358,17 @@ class LeapListener
                             arcPen = new Pen(Color.Red, penThickness);
                         }
                         if (sweepAng > 0)
-                            try
-                            {
+                            try {
                                 g.DrawArc(arcPen, arcRet, startAng, sweepAng);
                             }
-                            catch (Exception e)
-                            {
+                            catch (Exception e) {
                                 Console.WriteLine("Draw Error in frame: " + currentFrame + ":\n" + e);
                             }
-                        //g.DrawArc(new Pen(Color.Transparent, 5), acrRet, (startAng + sweepAng), (360 - sweepAng));
-                        /*
-                        // Create pens.
-                        Pen blackPen = new Pen(Color.Black, 5);
-                        Pen redPen = new Pen(Color.Red, 5);
-                        // Clear screen
-                        g.DrawRectangle(Pens.Transparent, new Rectangle(0, 0, 1920, 1080));
-                        int sizeMult = 150;
-                        if (currentZ > 0.5)
-                            g.DrawEllipse(blackPen, new Rectangle(CursorXPosScreen - (int)(sizeMult * (currentZ - 0.5)), CursorYPosScreen - (int)(sizeMult * (currentZ - 0.5)), (int)(2 * sizeMult * (currentZ - 0.5)), (int)(2 * sizeMult * (currentZ - 0.5))));
-                        else
-                            g.DrawEllipse(redPen, new Rectangle(CursorXPosScreen - (int)(sizeMult * (0.5 - currentZ)), CursorYPosScreen - (int)(sizeMult * (0.5 - currentZ)), (int)(2 * sizeMult * (0.5 - currentZ)), (int)(2 * sizeMult * (0.5 - currentZ))));
-                        //*/
                         g.Dispose();
                         arcPen.Dispose();
 
                         ReleaseDC(IntPtr.Zero, desktopPtr);
                     }
-
-                    // Left click
-                    //*
-                    //if (!previousThumb & currentThumb)
-                    if (previousZ > 0.5 & currentZ < 0.5)
-                    {
-                        mouse_event(MOUSEEVENTF_LEFTDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                        mouseDown = true;
-                    }
-                    //if (previousThumb & !currentThumb)
-                    if (previousZ < 0.5 & currentZ > 0.5)
-                    {
-                        mouse_event(MOUSEEVENTF_LEFTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                        mouseDown = false;
-                    }//*/
 
                     //Console.Write("X: " + normalizedPoint.x + ", Y: " + normalizedPoint.y + ", Z: " + normalizedPoint.z + "\n");
 
