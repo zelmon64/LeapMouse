@@ -96,7 +96,7 @@ class LeapListener
     //private bool previousThumb;
     private float CursorXPos;
     private float CursorYPos;
-    private bool mouseDown;
+    private int mouseDown;
     private int drawSkip;
 
     public void OnLogMessage(object sender, LogEventArgs args)
@@ -153,7 +153,7 @@ class LeapListener
                 {
                     Finger indexFinger = hand.Fingers[1];
 
-                    leapPoint = indexFinger.TipPosition; //.StabilizedTipPosition; //
+                    leapPoint = indexFinger.StabilizedTipPosition; //.TipPosition; //
                     normalizedPoint = iBox.NormalizePoint(leapPoint, false);
                     currentZ = normalizedPoint.z;
 
@@ -178,12 +178,12 @@ class LeapListener
                             if (previousZ > 0.5 & currentZ < 0.5)
                             {
                                 mouse_event(MOUSEEVENTF_LEFTDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                                mouseDown = true;
+                                mouseDown += 1;
                             }
-                            if (previousZ < 0.5 & currentZ > 0.5)
+                            else if (previousZ < 0.5 & currentZ > 0.5)
                             {
                                 mouse_event(MOUSEEVENTF_LEFTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                                mouseDown = false;
+                                mouseDown -= 1;
                             }
                         }
                         else if (activeFingerList[0])
@@ -203,31 +203,26 @@ class LeapListener
                                 {
                                     mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
                                 }
-                                // X2 single click
+                                // Open TabTip
                                 if (activeFingerList[4] && previousZ > 0.5 & currentZ < 0.5)
                                 {
-                                    mouse_event(MOUSEEVENTF_XDOWN | MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON2, 0);
-                                }
-                            }
-                            else if (activeFingerCount == 4)
-                            {
-                                if (activeFingerList[2] && activeFingerList[3])
-                                {
-                                    // Middle click
-                                    if (previousZ > 0.5 & currentZ < 0.5)
-                                    {
-                                        mouse_event(MOUSEEVENTF_MIDDLEDOWN | MOUSEEVENTF_MIDDLEUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                                    }
+                                    Process.Start("TabTip.exe");
                                 }
                             }
                             else if (activeFingerCount == 5)
                             {
                                 //if (activeFingerList[2] && activeFingerList[3])
                                 {
-                                    // X1 click
+                                    // Middle drag
                                     if (previousZ > 0.5 & currentZ < 0.5)
                                     {
-                                        mouse_event(MOUSEEVENTF_XDOWN | MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON1, 0);
+                                        mouse_event(MOUSEEVENTF_MIDDLEDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                        mouseDown += 100;
+                                    }
+                                    else if (previousZ < 0.5 & currentZ > 0.5)
+                                    {
+                                        mouse_event(MOUSEEVENTF_MIDDLEUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
+                                        mouseDown -= 100;
                                     }
                                 }
                             }
@@ -240,26 +235,20 @@ class LeapListener
                                 if (previousZ > 0.5 & currentZ < 0.5)
                                 {
                                     mouse_event(MOUSEEVENTF_RIGHTDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                                    mouseDown = true;
+                                    mouseDown += 10;
                                 }
-                                if (previousZ < 0.5 & currentZ > 0.5)
+                                else if (previousZ < 0.5 & currentZ > 0.5)
                                 {
                                     mouse_event(MOUSEEVENTF_RIGHTUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                                    mouseDown = false;
+                                    mouseDown -= 10;
                                 }
                             }
                             else if (activeFingerList[4])
                             {
-                                // X2 drag
+                                // X2 click
                                 if (previousZ > 0.5 & currentZ < 0.5)
                                 {
-                                    mouse_event(MOUSEEVENTF_XDOWN, (int)CursorXPos, (int)CursorYPos, XBUTTON2, 0);
-                                    mouseDown = true;
-                                }
-                                if (previousZ < 0.5 & currentZ > 0.5)
-                                {
-                                    mouse_event(MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON2, 0);
-                                    mouseDown = false;
+                                    mouse_event(MOUSEEVENTF_XDOWN | MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON2, 0);
                                 }
                             }
                         }
@@ -267,16 +256,10 @@ class LeapListener
                         {
                             //if (activeFingerList[2] && activeFingerList[3])
                             {
-                                // Middle drag
+                                // Middle click
                                 if (previousZ > 0.5 & currentZ < 0.5)
                                 {
-                                    mouse_event(MOUSEEVENTF_MIDDLEDOWN, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                                    mouseDown = true;
-                                }
-                                if (previousZ < 0.5 & currentZ > 0.5)
-                                {
-                                    mouse_event(MOUSEEVENTF_MIDDLEUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
-                                    mouseDown = false;
+                                    mouse_event(MOUSEEVENTF_MIDDLEDOWN | MOUSEEVENTF_MIDDLEUP, (int)CursorXPos, (int)CursorYPos, 0, 0);
                                 }
                             }
                         }
@@ -284,16 +267,10 @@ class LeapListener
                         {
                             //if (activeFingerList[2] && activeFingerList[3])
                             {
-                                // X1 drag
+                                // X1 click
                                 if (previousZ > 0.5 & currentZ < 0.5)
                                 {
-                                    mouse_event(MOUSEEVENTF_XDOWN, (int)CursorXPos, (int)CursorYPos, XBUTTON1, 0);
-                                    mouseDown = true;
-                                }
-                                if (previousZ < 0.5 & currentZ > 0.5)
-                                {
-                                    mouse_event(MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON1, 0);
-                                    mouseDown = false;
+                                    mouse_event(MOUSEEVENTF_XDOWN | MOUSEEVENTF_XUP, (int)CursorXPos, (int)CursorYPos, XBUTTON1, 0);
                                 }
                             }
                         }
@@ -381,10 +358,24 @@ class LeapListener
             {
                 //Console.Write("No hands found\n");
                 //*
-                if (mouseDown)
+                if (mouseDown > 0)
                 {
-                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-                    mouseDown = false;
+                    if (mouseDown % 10 == 1)
+                    {
+                        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                        mouseDown -= 1;
+                    }
+                    if (mouseDown % 100 == 10)
+                    {
+                        mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+                        mouseDown -= 10;
+                    }
+                    if (mouseDown % 1000 == 100)
+                    {
+                        mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0);
+                        mouseDown -= 100;
+                    }
+                    mouseDown = 0;
                 }//*/
                 currentZ = 1;
                 previousZ = 1;
