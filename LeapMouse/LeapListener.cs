@@ -98,16 +98,14 @@ class LeapListener
     private Frame prevFrame;
     private float currentZ = 2;
     private float previousZ = 2;
-    //private bool currentThumb;
-    //private bool previousThumb;
     private float CursorXPos;
     private float CursorYPos;
     private float MagXOffset;
     private float MagYOffset;
     private int mouseDown;
     private int drawSkip;
-    public bool magnify = true;
-    public bool magnifying = false;
+    public bool magnify = false; //true;
+    public int magnifying = 0;
 
     public void OnLogMessage(object sender, LogEventArgs args)
     {
@@ -129,34 +127,31 @@ class LeapListener
         Console.WriteLine("[{0}] {1}", args.timestamp, args.message);
     }
 
-    public void Magnify(int dwFlags)
+    public void Magnify(int dwFlags, int magnification)
     {
         if (magnify)
         {
-            if (magnifying)
+            if (magnifying == 0)
             {
-                //Console.WriteLine("Magnifying OFF");
-                mouse_event(dwFlags, 0, 0, 0, 0);
-                PressVK(VK_ESCAPE);
+                //Process.Start("Magnify");
+                MagXOffset = CursorXPos;
+                MagYOffset = CursorYPos;
+                magnifying = magnification;
             }
             else
             {
-                //PressVK(VK_OEM_PLUS);
-                Process.Start("Magnify");
-                //Console.WriteLine("Magnifying ON");
-                MagXOffset = CursorXPos; // * 65535;
-                MagYOffset = CursorYPos; // * 65535;
+                mouse_event(dwFlags, 0, 0, 0, 0);
+                magnifying = 0;
+                //PressVK(VK_ESCAPE);
             }
-            magnifying = !magnifying;
+            //magnifying = !magnifying;
         }
         else
         {
             mouse_event(dwFlags, 0, 0, 0, 0);
-            //Console.WriteLine("Mouse pressed");
         }
     }
-
-    //public void PressVK(byte key, bool HoldKey)
+    
     public void PressVK(byte key)
     {
         byte bScan = 0;
@@ -201,30 +196,46 @@ class LeapListener
                 {
                     Finger indexFinger = hand.Fingers[1];
 
-                    leapPoint = indexFinger.StabilizedTipPosition; //.TipPosition; //
+                    leapPoint = indexFinger.TipPosition; //.StabilizedTipPosition; //
                     normalizedPoint = iBox.NormalizePoint(leapPoint, false);
                     currentZ = normalizedPoint.z;
 
                     if (currentZ < 1.5)
                     {
-                        CursorXPos = normalizedPoint.x; // * 65535; // appWidth;
-                        CursorYPos = (1 - normalizedPoint.y); // * 65535; // appHeight;
-                        int CursorXPosMouse; // = (int)(CursorXPos * 65535);
-                        int CursorYPosMouse; // = (int)(CursorYPos * 65535);
-                        //*; // 
-                        if (magnifying)
+                        /*
+                        if (currentZ < 1.0 && currentZ > 0.5) // 0.0) //
                         {
-                            CursorXPosMouse = (int)((CursorXPos + MagXOffset) / 2 * 65535);
-                            CursorYPosMouse = (int)((CursorYPos + MagYOffset) / 2 * 65535);
+                            float d = (currentZ - 0.5f) * (currentZ - 0.5f) * 4;
+                            CursorXPos = normalizedPoint.x * d + CursorXPos * (1.0f - d);
+                            CursorYPos = (1 - normalizedPoint.y) * d + CursorYPos * (1.0f - d);
+                        }
+                        else //*/
+                        if (currentZ < 0.75 && currentZ > 0.25)
+                        {
+                            float d = (currentZ - 0.5f) * (currentZ - 0.5f) * 16;
+                            CursorXPos = normalizedPoint.x * d + CursorXPos * (1.0f - d);
+                            CursorYPos = (1 - normalizedPoint.y) * d + CursorYPos * (1.0f - d);
                         }
                         else
                         {
+                            CursorXPos = normalizedPoint.x;
+                            CursorYPos = (1 - normalizedPoint.y);
+                        }
+                        int CursorXPosMouse;
+                        int CursorYPosMouse;
+
+                        if (magnifying == 0)
+                        {
                             CursorXPosMouse = (int)(CursorXPos * 65535);
                             CursorYPosMouse = (int)(CursorYPos * 65535);
-                        }//*/
+                        }
+                        else
+                        {
+                            CursorXPosMouse = (int)((CursorXPos + MagXOffset * (magnifying - 1)) / magnifying * 65535);
+                            CursorYPosMouse = (int)((CursorYPos + MagYOffset * (magnifying - 1)) / magnifying * 65535);
+                        }
 
                         // Move the mouse.
-                        //SetCursorPos((int)CursorXPos, (int)CursorYPos);
                         mouse_event(
                             (MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE),
                             CursorXPosMouse, CursorYPosMouse, 0, 0);
@@ -250,7 +261,7 @@ class LeapListener
                                 // Left single click
                                 if (previousZ > 0.5 && currentZ < 0.5)
                                 {
-                                    Magnify(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP);
+                                    Magnify(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, 3);
                                 }
                             }
                             else if (activeFingerCount == 3)
@@ -258,7 +269,7 @@ class LeapListener
                                 // Right single click
                                 if (activeFingerList[2] && previousZ > 0.5 && currentZ < 0.5)
                                 {
-                                    Magnify(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP);
+                                    Magnify(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, 3);
                                 }
                                 // Open TabTip
                                 if (activeFingerList[4] && previousZ > 0.5 && currentZ < 0.5)
@@ -283,11 +294,15 @@ class LeapListener
                                     {
                                         mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0);
                                         mouseDown += 100;
+                                        MagXOffset = CursorXPos;
+                                        MagYOffset = CursorYPos;
+                                        magnifying = 5; // 20;
                                     }
                                     else if (previousZ < 0.5 && currentZ > 0.5)
                                     {
                                         mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0);
                                         mouseDown -= 100;
+                                        magnifying = 0;
                                     }
                                 }
                             }
@@ -324,7 +339,7 @@ class LeapListener
                                 // Middle click
                                 if (previousZ > 0.5 && currentZ < 0.5)
                                 {
-                                    Magnify(MOUSEEVENTF_MIDDLEDOWN | MOUSEEVENTF_MIDDLEUP);
+                                    Magnify(MOUSEEVENTF_MIDDLEDOWN | MOUSEEVENTF_MIDDLEUP, 3);
                                 }
                             }
                         }
@@ -343,7 +358,7 @@ class LeapListener
                 }
                 else
                 {
-                    //currentZ = 2;
+                    currentZ = 2;
                 }
 
                 
@@ -355,16 +370,19 @@ class LeapListener
                     if (drawSkip > 3) // && currentZ < 1 && currentZ > 0) //(false) //
                     {
                         drawSkip = 1;
-                        if (currentZ > 1)
+                        if (currentZ > 0.75) // 1)
                             currentZ = 1;
-                        else if (currentZ < 0)
+                        else if (currentZ < 0.25) // 0) // 
                             currentZ = 0;
+                        else //if (currentZ < 0.5)
+                            currentZ = (currentZ * 2 - 0.5f);
+                        /*//*/
                         IntPtr desktopPtr = GetDC(IntPtr.Zero);
                         Graphics g = Graphics.FromHdc(desktopPtr);
                         float penThickness = 8;
                         Pen arcPen = new Pen(Color.Transparent, penThickness);
                         int retSize = 300;
-                        Rectangle arcRet = new Rectangle((1920 - retSize) / 2, 50, retSize, retSize); // ((1920- retSize) / 2, (1080- retSize) / 2, retSize, retSize); // (50, 50, 1870, 1030);
+                        Rectangle arcRet = new Rectangle((1920 - retSize) / 2, 50, retSize, retSize); 
                         float startAng; // = 180;
                         float sweepAng; // = 180;
                         float minSweep = 0.1f;
@@ -389,7 +407,7 @@ class LeapListener
                         {
                             startAng = 270;
                             sweepAng = (float)(angMult * 2 * (0.5 - currentZ));
-                            if (sweepAng - angMult > minSweep)
+                            if (angMult - sweepAng > minSweep)
                                 try {
                                     g.DrawArc(arcPen, arcRet, angMult - 90, sweepAng - angMult);
                                 }
@@ -417,13 +435,11 @@ class LeapListener
 
                     previousZ = currentZ;
                     prevTime = currentTime;
-                    //previousThumb = currentThumb;
                 }
             }
             else
             {
                 //Console.Write("No hands found\n");
-                //*
                 if (mouseDown > 0)
                 {
                     if (mouseDown % 10 == 1)
@@ -442,10 +458,10 @@ class LeapListener
                         mouseDown -= 100;
                     }
                     mouseDown = 0;
-                }//*/
-                //currentZ = 1;
-                //previousZ = 1;
-                //currentThumb = false;
+                }
+                currentZ = 2;
+                previousZ = 2;
+                magnifying = 0;
             }
         }
     }
